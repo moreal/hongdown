@@ -325,6 +325,10 @@ impl<'a> Serializer<'a> {
             .children()
             .any(|child| matches!(&child.data.borrow().value, NodeValue::Image(_)));
 
+        // Check if this is an autolink (link text equals URL)
+        let raw_text = self.collect_raw_text(node);
+        let is_autolink = title.is_empty() && raw_text == url;
+
         if contains_image {
             // Badge-style: image inside link - use fully inline syntax
             // [![alt](img-url)](link-url)
@@ -340,6 +344,11 @@ impl<'a> Serializer<'a> {
                 self.output.push('"');
             }
             self.output.push(')');
+        } else if is_autolink {
+            // Autolink: use <url> format
+            self.output.push('<');
+            self.output.push_str(url);
+            self.output.push('>');
         } else if Self::is_external_url(url) {
             // External URL: use reference link style
             let link_text = self.collect_text(node);
@@ -396,6 +405,29 @@ impl<'a> Serializer<'a> {
         let mut text = String::new();
         self.collect_text_recursive(node, &mut text);
         text
+    }
+
+    /// Collect raw text without escaping (for comparison purposes)
+    fn collect_raw_text<'b>(&self, node: &'b AstNode<'b>) -> String {
+        let mut text = String::new();
+        self.collect_raw_text_recursive(node, &mut text);
+        text
+    }
+
+    fn collect_raw_text_recursive<'b>(&self, node: &'b AstNode<'b>, text: &mut String) {
+        match &node.data.borrow().value {
+            NodeValue::Text(t) => {
+                text.push_str(t);
+            }
+            NodeValue::SoftBreak => {
+                text.push(' ');
+            }
+            _ => {
+                for child in node.children() {
+                    self.collect_raw_text_recursive(child, text);
+                }
+            }
+        }
     }
 
     fn collect_text_recursive<'b>(&self, node: &'b AstNode<'b>, text: &mut String) {
@@ -482,6 +514,10 @@ impl<'a> Serializer<'a> {
                     .children()
                     .any(|child| matches!(&child.data.borrow().value, NodeValue::Image(_)));
 
+                // Check if this is an autolink (link text equals URL)
+                let raw_text = self.collect_raw_text(node);
+                let is_autolink = link.title.is_empty() && raw_text == link.url;
+
                 if contains_image {
                     // Badge-style: image inside link - use fully inline syntax
                     content.push('[');
@@ -496,6 +532,11 @@ impl<'a> Serializer<'a> {
                         content.push('"');
                     }
                     content.push(')');
+                } else if is_autolink {
+                    // Autolink: use <url> format
+                    content.push('<');
+                    content.push_str(&link.url);
+                    content.push('>');
                 } else if Self::is_external_url(&link.url) {
                     // External URL: use reference link style
                     let mut link_text = String::new();
@@ -1589,5 +1630,13 @@ Check [Python](https://python.org/) too.
         let input = r"\_start and end\_";
         let result = parse_and_serialize(input);
         assert_eq!(result, "\\_start and end\\_\n");
+    }
+
+    #[test]
+    fn test_serialize_autolink_preserved() {
+        // Autolinks <url> should be preserved as autolink format, not reference style
+        let input = "Visit <https://example.com/> for more info.";
+        let result = parse_and_serialize(input);
+        assert_eq!(result, "Visit <https://example.com/> for more info.\n");
     }
 }
