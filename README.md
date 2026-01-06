@@ -70,7 +70,7 @@ TODO
 
 ### Phase 1: Core formatting
 
- -  [ ] Basic CLI with file input/output
+ -  [x] Basic CLI with file input/output
  -  [x] Front matter preservation (YAML/TOML)
  -  [x] Headings (setext and ATX)
  -  [ ] Paragraphs with line wrapping
