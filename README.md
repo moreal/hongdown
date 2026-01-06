@@ -84,7 +84,7 @@ TODO
 
  -  [x] Tables with alignment
  -  [x] Definition lists
- -  [ ] GitHub alerts/admonitions
+ -  [x] GitHub alerts/admonitions
  -  [ ] Footnotes
  -  [ ] Reference link collection and placement
 

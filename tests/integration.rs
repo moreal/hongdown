@@ -1,6 +1,6 @@
 //! Integration tests for Hongdown formatter.
 
-use hongdown::{format, Options};
+use hongdown::{Options, format};
 
 /// Test that formatting is idempotent (formatting twice produces same result).
 #[test]

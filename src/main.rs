@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
-use hongdown::{format, Options};
+use hongdown::{Options, format};
 
 /// A Markdown formatter that enforces Hong Minhee's Markdown style conventions.
 #[derive(Parser, Debug)]
@@ -79,11 +79,11 @@ fn main() -> ExitCode {
                             all_formatted = false;
                         }
                     } else if args.write {
-                        if input != output {
-                            if let Err(e) = fs::write(file, &output) {
-                                eprintln!("Error writing {}: {}", file.display(), e);
-                                return ExitCode::FAILURE;
-                            }
+                        if input != output
+                            && let Err(e) = fs::write(file, &output)
+                        {
+                            eprintln!("Error writing {}: {}", file.display(), e);
+                            return ExitCode::FAILURE;
                         }
                     } else {
                         print!("{}", output);

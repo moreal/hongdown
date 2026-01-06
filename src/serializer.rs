@@ -1,6 +1,6 @@
 //! Serializer for converting comrak AST to formatted Markdown.
 
-use comrak::nodes::{AstNode, ListType, NodeTable, NodeValue, TableAlignment};
+use comrak::nodes::{AlertType, AstNode, ListType, NodeTable, NodeValue, TableAlignment};
 
 use crate::Options;
 
@@ -81,6 +81,9 @@ impl<'a> Serializer<'a> {
                 }
                 self.output.push_str(content.trim());
                 self.output.push('\n');
+            }
+            NodeValue::Alert(alert) => {
+                self.serialize_alert(node, alert.alert_type);
             }
             NodeValue::Item(_) => {
                 self.serialize_list_item(node);
@@ -309,6 +312,32 @@ impl<'a> Serializer<'a> {
         result
     }
 
+    fn serialize_alert<'b>(&mut self, node: &'b AstNode<'b>, alert_type: AlertType) {
+        // Output the alert header
+        let type_str = match alert_type {
+            AlertType::Note => "NOTE",
+            AlertType::Tip => "TIP",
+            AlertType::Important => "IMPORTANT",
+            AlertType::Warning => "WARNING",
+            AlertType::Caution => "CAUTION",
+        };
+        self.output.push_str("> [!");
+        self.output.push_str(type_str);
+        self.output.push_str("]\n");
+
+        // Output the alert content with > prefix
+        for child in node.children() {
+            let mut content = String::new();
+            self.collect_inline_node(child, &mut content);
+            let content = content.trim();
+            if !content.is_empty() {
+                self.output.push_str("> ");
+                self.output.push_str(content);
+                self.output.push('\n');
+            }
+        }
+    }
+
     fn serialize_front_matter(&mut self, content: &str) {
         // Front matter content from comrak includes the delimiters,
         // so we preserve it verbatim and add a trailing blank line
@@ -351,7 +380,8 @@ impl<'a> Serializer<'a> {
             for (i, cell) in header_cells.iter().enumerate() {
                 self.output.push(' ');
                 let width = col_widths.get(i).copied().unwrap_or(3);
-                self.output.push_str(&format!("{:width$}", cell, width = width));
+                self.output
+                    .push_str(&format!("{:width$}", cell, width = width));
                 self.output.push_str(" |");
             }
             self.output.push('\n');
@@ -390,7 +420,8 @@ impl<'a> Serializer<'a> {
             for (i, cell) in row_cells.iter().enumerate() {
                 self.output.push(' ');
                 let width = col_widths.get(i).copied().unwrap_or(3);
-                self.output.push_str(&format!("{:width$}", cell, width = width));
+                self.output
+                    .push_str(&format!("{:width$}", cell, width = width));
                 self.output.push_str(" |");
             }
             self.output.push('\n');
@@ -649,7 +680,10 @@ mod tests {
     fn test_serialize_yaml_front_matter() {
         let input = "---\ntitle: Hello\nauthor: World\n---\n\n# Heading";
         let result = parse_and_serialize_with_frontmatter(input);
-        assert_eq!(result, "---\ntitle: Hello\nauthor: World\n---\n\nHeading\n=======\n");
+        assert_eq!(
+            result,
+            "---\ntitle: Hello\nauthor: World\n---\n\nHeading\n=======\n"
+        );
     }
 
     #[test]
@@ -676,11 +710,7 @@ mod tests {
         assert!(result.contains('\n'));
         // Each line should be at most 80 characters (approximately)
         for line in result.lines() {
-            assert!(
-                line.len() <= 85,
-                "Line too long: {} chars",
-                line.len()
-            );
+            assert!(line.len() <= 85, "Line too long: {} chars", line.len());
         }
     }
 
@@ -699,10 +729,7 @@ mod tests {
         let result = parse_and_serialize_with_width(input, 40);
         // Check that words are not broken
         for line in result.lines() {
-            assert!(
-                !line.ends_with('-'),
-                "Words should not be hyphenated"
-            );
+            assert!(!line.ends_with('-'), "Words should not be hyphenated");
         }
     }
 
@@ -780,5 +807,38 @@ mod tests {
         assert!(result.contains("Term\n"));
         assert!(result.contains(":   First definition"));
         assert!(result.contains(":   Second definition"));
+    }
+
+    fn parse_and_serialize_with_alerts(input: &str) -> String {
+        let arena = Arena::new();
+        let mut options = ComrakOptions::default();
+        options.extension.alerts = true;
+        let root = parse_document(&arena, input, &options);
+        let format_options = Options::default();
+        serialize(root, &format_options)
+    }
+
+    #[test]
+    fn test_serialize_github_note_alert() {
+        let input = "> [!NOTE]\n> This is a note.";
+        let result = parse_and_serialize_with_alerts(input);
+        assert!(result.contains("> [!NOTE]"));
+        assert!(result.contains("> This is a note."));
+    }
+
+    #[test]
+    fn test_serialize_github_warning_alert() {
+        let input = "> [!WARNING]\n> This is a warning.";
+        let result = parse_and_serialize_with_alerts(input);
+        assert!(result.contains("> [!WARNING]"));
+        assert!(result.contains("> This is a warning."));
+    }
+
+    #[test]
+    fn test_serialize_github_caution_alert() {
+        let input = "> [!CAUTION]\n> Be careful!";
+        let result = parse_and_serialize_with_alerts(input);
+        assert!(result.contains("> [!CAUTION]"));
+        assert!(result.contains("> Be careful!"));
     }
 }
