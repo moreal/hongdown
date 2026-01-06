@@ -78,7 +78,7 @@ TODO
  -  [x] Code blocks (fenced)
  -  [x] Block quotes
  -  [x] Inline formatting (emphasis, strong, code, links)
- -  [ ] Basic test suite
+ -  [x] Basic test suite
 
 ### Phase 2: Extended syntax
 

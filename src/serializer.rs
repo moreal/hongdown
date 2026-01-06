@@ -36,7 +36,7 @@ impl<'a> Serializer<'a> {
     fn serialize_node<'b>(&mut self, node: &'b AstNode<'b>) {
         match &node.data.borrow().value {
             NodeValue::Document => {
-                self.serialize_children(node);
+                self.serialize_document(node);
             }
             NodeValue::Heading(heading) => {
                 self.serialize_heading(node, heading.level);
@@ -99,6 +99,23 @@ impl<'a> Serializer<'a> {
                 // For now, just recurse into children for unhandled nodes
                 self.serialize_children(node);
             }
+        }
+    }
+
+    fn serialize_document<'b>(&mut self, node: &'b AstNode<'b>) {
+        let children: Vec<_> = node.children().collect();
+        for (i, child) in children.iter().enumerate() {
+            // Add blank line between block elements (except after front matter)
+            if i > 0 {
+                let prev_is_front_matter = matches!(
+                    &children[i - 1].data.borrow().value,
+                    NodeValue::FrontMatter(_)
+                );
+                if !prev_is_front_matter {
+                    self.output.push('\n');
+                }
+            }
+            self.serialize_node(child);
         }
     }
 
