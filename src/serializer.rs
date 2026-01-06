@@ -1,6 +1,6 @@
 //! Serializer for converting comrak AST to formatted Markdown.
 
-use comrak::nodes::{AstNode, NodeValue};
+use comrak::nodes::{AstNode, ListType, NodeValue};
 
 use crate::Options;
 
@@ -15,6 +15,10 @@ struct Serializer<'a> {
     output: String,
     #[allow(dead_code)]
     options: &'a Options,
+    /// Current list item index (1-based) for ordered lists
+    list_item_index: usize,
+    /// Current list type
+    list_type: Option<ListType>,
 }
 
 impl<'a> Serializer<'a> {
@@ -22,6 +26,8 @@ impl<'a> Serializer<'a> {
         Self {
             output: String::new(),
             options,
+            list_item_index: 0,
+            list_type: None,
         }
     }
 
@@ -33,9 +39,20 @@ impl<'a> Serializer<'a> {
             NodeValue::Heading(heading) => {
                 self.serialize_heading(node, heading.level);
             }
+            NodeValue::List(list) => {
+                self.serialize_list(node, list.list_type);
+            }
+            NodeValue::Item(_) => {
+                self.serialize_list_item(node);
+            }
             NodeValue::Paragraph => {
-                self.serialize_children(node);
-                self.output.push('\n');
+                if self.list_type.is_some() {
+                    // Inside a list item, don't add trailing newline
+                    self.serialize_children(node);
+                } else {
+                    self.serialize_children(node);
+                    self.output.push('\n');
+                }
             }
             NodeValue::Text(text) => {
                 self.output.push_str(text);
@@ -102,6 +119,40 @@ impl<'a> Serializer<'a> {
         }
     }
 
+    fn serialize_list<'b>(&mut self, node: &'b AstNode<'b>, list_type: ListType) {
+        let old_list_type = self.list_type;
+        let old_index = self.list_item_index;
+
+        self.list_type = Some(list_type);
+        self.list_item_index = 0;
+
+        self.serialize_children(node);
+
+        self.list_type = old_list_type;
+        self.list_item_index = old_index;
+    }
+
+    fn serialize_list_item<'b>(&mut self, node: &'b AstNode<'b>) {
+        self.list_item_index += 1;
+
+        match self.list_type {
+            Some(ListType::Bullet) => {
+                // " -  " format: one leading space, hyphen, two trailing spaces
+                self.output.push_str(" -  ");
+            }
+            Some(ListType::Ordered) => {
+                // " N. " format for ordered lists
+                self.output.push(' ');
+                self.output.push_str(&self.list_item_index.to_string());
+                self.output.push_str(". ");
+            }
+            None => {}
+        }
+
+        self.serialize_children(node);
+        self.output.push('\n');
+    }
+
     fn serialize_children<'b>(&mut self, node: &'b AstNode<'b>) {
         for child in node.children() {
             self.serialize_node(child);
@@ -156,5 +207,29 @@ mod tests {
     fn test_serialize_h4_atx() {
         let result = parse_and_serialize("#### Deep Subsection");
         assert_eq!(result, "#### Deep Subsection\n");
+    }
+
+    #[test]
+    fn test_serialize_unordered_list_single_item() {
+        let result = parse_and_serialize("- Item one");
+        assert_eq!(result, " -  Item one\n");
+    }
+
+    #[test]
+    fn test_serialize_unordered_list_multiple_items() {
+        let result = parse_and_serialize("- Item one\n- Item two\n- Item three");
+        assert_eq!(result, " -  Item one\n -  Item two\n -  Item three\n");
+    }
+
+    #[test]
+    fn test_serialize_ordered_list_single_item() {
+        let result = parse_and_serialize("1. First item");
+        assert_eq!(result, " 1. First item\n");
+    }
+
+    #[test]
+    fn test_serialize_ordered_list_multiple_items() {
+        let result = parse_and_serialize("1. First\n2. Second\n3. Third");
+        assert_eq!(result, " 1. First\n 2. Second\n 3. Third\n");
     }
 }
