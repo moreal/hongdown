@@ -72,7 +72,7 @@ TODO
 
  -  [ ] Basic CLI with file input/output
  -  [ ] Front matter preservation (YAML/TOML)
- -  [ ] Headings (setext and ATX)
+ -  [x] Headings (setext and ATX)
  -  [ ] Paragraphs with line wrapping
  -  [ ] Lists (ordered and unordered)
  -  [ ] Code blocks (fenced)

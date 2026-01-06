@@ -1,0 +1,93 @@
+//! Hongdown is a Markdown formatter that enforces Hong Minhee's Markdown style
+//! conventions.
+//!
+//! # Example
+//!
+//! ```
+//! use hongdown::{format, Options};
+//!
+//! let input = "# Hello\nWorld";
+//! let options = Options::default();
+//! let output = format(input, &options).unwrap();
+//! ```
+
+mod serializer;
+
+use comrak::{Arena, Options as ComrakOptions, parse_document};
+
+/// Formatting options for the Markdown formatter.
+#[derive(Debug, Clone)]
+pub struct Options {
+    /// Line width for wrapping. Default: 80.
+    pub line_width: usize,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self { line_width: 80 }
+    }
+}
+
+/// Formats a Markdown document according to Hong Minhee's style conventions.
+///
+/// # Arguments
+///
+/// * `input` - The Markdown source to format.
+/// * `options` - Formatting options.
+///
+/// # Returns
+///
+/// The formatted Markdown string, or an error if formatting fails.
+///
+/// # Errors
+///
+/// Returns an error if the input cannot be parsed or formatted.
+pub fn format(input: &str, options: &Options) -> Result<String, FormatError> {
+    if input.is_empty() {
+        return Ok(String::new());
+    }
+
+    let arena = Arena::new();
+    let mut comrak_options = ComrakOptions::default();
+    comrak_options.extension.front_matter_delimiter = Some("---".to_string());
+
+    let root = parse_document(&arena, input, &comrak_options);
+    let output = serializer::serialize(root, options);
+
+    Ok(output)
+}
+
+/// Errors that can occur during formatting.
+#[derive(Debug)]
+pub enum FormatError {
+    /// An error occurred during parsing.
+    ParseError(String),
+}
+
+impl std::fmt::Display for FormatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FormatError::ParseError(msg) => write!(f, "Parse error: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for FormatError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_empty_input() {
+        let result = format("", &Options::default()).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_format_plain_text() {
+        let input = "Hello, world!";
+        let result = format(input, &Options::default()).unwrap();
+        assert_eq!(result, "Hello, world!\n");
+    }
+}
