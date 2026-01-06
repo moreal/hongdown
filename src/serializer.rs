@@ -456,13 +456,15 @@ impl<'a> Serializer<'a> {
         if self.list_type.is_some() {
             // Inside a list item, wrap with proper continuation indent
             // First line has no prefix (marker already output)
-            // Continuation lines need 4-space indent (plus block quote prefix if applicable)
+            // Continuation lines need 4-space indent per nesting level
+            // (to align with list item content at each level)
+            let base_indent = "    ".repeat(self.list_depth);
             let continuation = if self.in_block_quote {
-                ">     " // > + 4 spaces to align with list item content
+                format!("> {}", base_indent)
             } else {
-                "    " // 4 spaces to align with list item content
+                base_indent
             };
-            let wrapped = self.wrap_text_first_line(&inline_content, "", continuation);
+            let wrapped = self.wrap_text_first_line(&inline_content, "", &continuation);
             self.output.push_str(&wrapped);
         } else {
             // Wrap the paragraph at line_width
@@ -1638,5 +1640,19 @@ Check [Python](https://python.org/) too.
         let input = "Visit <https://example.com/> for more info.";
         let result = parse_and_serialize(input);
         assert_eq!(result, "Visit <https://example.com/> for more info.\n");
+    }
+
+    #[test]
+    fn test_serialize_nested_list_wrap_continuation() {
+        // Nested list items should wrap with proper continuation indent
+        // accounting for the parent list's indentation
+        let input = " 1. First\n     -  This is a very long nested item that should wrap with proper eight-space continuation.";
+        let result = parse_and_serialize_with_width(input, 80);
+        // Continuation should have 8 spaces (4 for parent + 4 for list item content)
+        assert!(
+            result.contains("\n        "),
+            "Nested list continuation should have 8-space indent, got:\n{}",
+            result
+        );
     }
 }
