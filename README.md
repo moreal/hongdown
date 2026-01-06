@@ -83,7 +83,7 @@ TODO
 ### Phase 2: Extended syntax
 
  -  [x] Tables with alignment
- -  [ ] Definition lists
+ -  [x] Definition lists
  -  [ ] GitHub alerts/admonitions
  -  [ ] Footnotes
  -  [ ] Reference link collection and placement

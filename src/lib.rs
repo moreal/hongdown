@@ -51,6 +51,7 @@ pub fn format(input: &str, options: &Options) -> Result<String, FormatError> {
     let mut comrak_options = ComrakOptions::default();
     comrak_options.extension.front_matter_delimiter = Some("---".to_string());
     comrak_options.extension.table = true;
+    comrak_options.extension.description_lists = true;
 
     let root = parse_document(&arena, input, &comrak_options);
     let output = serializer::serialize(root, options);

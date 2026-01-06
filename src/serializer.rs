@@ -62,6 +62,26 @@ impl<'a> Serializer<'a> {
             NodeValue::TableCell => {
                 self.serialize_children(node);
             }
+            NodeValue::DescriptionList => {
+                self.serialize_children(node);
+            }
+            NodeValue::DescriptionItem(_) => {
+                self.serialize_children(node);
+            }
+            NodeValue::DescriptionTerm => {
+                self.serialize_children(node);
+                self.output.push('\n');
+            }
+            NodeValue::DescriptionDetails => {
+                self.output.push_str(":   ");
+                // Collect inline content for the definition
+                let mut content = String::new();
+                for child in node.children() {
+                    self.collect_inline_node(child, &mut content);
+                }
+                self.output.push_str(content.trim());
+                self.output.push('\n');
+            }
             NodeValue::Item(_) => {
                 self.serialize_list_item(node);
             }
@@ -734,5 +754,31 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn parse_and_serialize_with_description_list(input: &str) -> String {
+        let arena = Arena::new();
+        let mut options = ComrakOptions::default();
+        options.extension.description_lists = true;
+        let root = parse_document(&arena, input, &options);
+        let format_options = Options::default();
+        serialize(root, &format_options)
+    }
+
+    #[test]
+    fn test_serialize_definition_list_single() {
+        let input = "Term\n:   Definition";
+        let result = parse_and_serialize_with_description_list(input);
+        assert!(result.contains("Term\n"));
+        assert!(result.contains(":   Definition"));
+    }
+
+    #[test]
+    fn test_serialize_definition_list_multiple_definitions() {
+        let input = "Term\n:   First definition\n:   Second definition";
+        let result = parse_and_serialize_with_description_list(input);
+        assert!(result.contains("Term\n"));
+        assert!(result.contains(":   First definition"));
+        assert!(result.contains(":   Second definition"));
     }
 }
