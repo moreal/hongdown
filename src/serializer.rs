@@ -51,6 +51,9 @@ impl<'a> Serializer<'a> {
             NodeValue::BlockQuote => {
                 self.serialize_block_quote(node);
             }
+            NodeValue::FrontMatter(content) => {
+                self.serialize_front_matter(content);
+            }
             NodeValue::Item(_) => {
                 self.serialize_list_item(node);
             }
@@ -158,6 +161,13 @@ impl<'a> Serializer<'a> {
                 }
             }
         }
+    }
+
+    fn serialize_front_matter(&mut self, content: &str) {
+        // Front matter content from comrak includes the delimiters,
+        // so we preserve it verbatim and add a trailing blank line
+        self.output.push_str(content.trim());
+        self.output.push_str("\n\n");
     }
 
     fn serialize_block_quote<'b>(&mut self, node: &'b AstNode<'b>) {
@@ -393,5 +403,28 @@ mod tests {
             result,
             "Visit [Rust](https://www.rust-lang.org/ \"The Rust Language\").\n"
         );
+    }
+
+    fn parse_and_serialize_with_frontmatter(input: &str) -> String {
+        let arena = Arena::new();
+        let mut options = ComrakOptions::default();
+        options.extension.front_matter_delimiter = Some("---".to_string());
+        let root = parse_document(&arena, input, &options);
+        let format_options = Options::default();
+        serialize(root, &format_options)
+    }
+
+    #[test]
+    fn test_serialize_yaml_front_matter() {
+        let input = "---\ntitle: Hello\nauthor: World\n---\n\n# Heading";
+        let result = parse_and_serialize_with_frontmatter(input);
+        assert_eq!(result, "---\ntitle: Hello\nauthor: World\n---\n\nHeading\n=======\n");
+    }
+
+    #[test]
+    fn test_serialize_yaml_front_matter_only() {
+        let input = "---\ntitle: Test\n---\n\nSome content.";
+        let result = parse_and_serialize_with_frontmatter(input);
+        assert_eq!(result, "---\ntitle: Test\n---\n\nSome content.\n");
     }
 }
