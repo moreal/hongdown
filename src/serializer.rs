@@ -1098,6 +1098,11 @@ impl<'a> Serializer<'a> {
                 // Preserve inline HTML as-is
                 content.push_str(html);
             }
+            NodeValue::FootnoteReference(footnote_ref) => {
+                content.push_str("[^");
+                content.push_str(&footnote_ref.name);
+                content.push(']');
+            }
             _ => {
                 for child in node.children() {
                     self.collect_inline_node(child, content);
