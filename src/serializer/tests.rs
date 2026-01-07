@@ -1672,3 +1672,23 @@ fn test_code_block_min_fence_length_six() {
     let result = parse_and_serialize_with_options("~~~~ rust\nfn main() {}\n~~~~", &options);
     assert!(result.starts_with("~~~~~~"), "got: {}", result);
 }
+
+#[test]
+fn test_code_block_space_after_fence_false() {
+    let options = Options {
+        space_after_fence: false,
+        ..Options::default()
+    };
+    let result = parse_and_serialize_with_options("~~~~ rust\nfn main() {}\n~~~~", &options);
+    assert!(result.contains("~~~~rust"), "got: {}", result);
+}
+
+#[test]
+fn test_code_block_space_after_fence_true() {
+    let options = Options {
+        space_after_fence: true,
+        ..Options::default()
+    };
+    let result = parse_and_serialize_with_options("~~~~rust\nfn main() {}\n~~~~", &options);
+    assert!(result.contains("~~~~ rust"), "got: {}", result);
+}

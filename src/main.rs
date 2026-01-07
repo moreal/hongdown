@@ -58,6 +58,7 @@ fn main() -> ExitCode {
         even_level_marker: config.ordered_list.even_level_marker,
         fence_char: config.code_block.fence_char,
         min_fence_length: config.code_block.min_fence_length,
+        space_after_fence: config.code_block.space_after_fence,
     };
 
     if args.stdin || args.files.is_empty() {

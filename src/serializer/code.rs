@@ -18,7 +18,9 @@ impl<'a> Serializer<'a> {
         };
         self.output.push_str(fence);
         if !code.info.is_empty() {
-            self.output.push(' ');
+            if self.options.space_after_fence {
+                self.output.push(' ');
+            }
             self.output.push_str(&code.info);
         }
         self.output.push('\n');
@@ -68,7 +70,9 @@ impl<'a> Serializer<'a> {
             self.output.push_str("> ");
         }
         self.output.push_str(&fence);
-        self.output.push(' ');
+        if self.options.space_after_fence {
+            self.output.push(' ');
+        }
         self.output.push_str(language);
         self.output.push('\n');
 
@@ -122,7 +126,9 @@ impl<'a> Serializer<'a> {
         // Output opening fence with optional language
         self.output.push_str(&fence);
         if !info.is_empty() {
-            self.output.push(' ');
+            if self.options.space_after_fence {
+                self.output.push(' ');
+            }
             self.output.push_str(info);
         }
         self.output.push('\n');

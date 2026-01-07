@@ -218,10 +218,10 @@ TODO
      -  [x] `[ordered_list]` section
          -  [x] `odd_level_marker` option
          -  [x] `even_level_marker` option
-     -  [ ] `[code_block]` section
+     -  [x] `[code_block]` section
          -  [x] `fence_char` option
          -  [x] `min_fence_length` option
-         -  [ ] `space_after_fence` option
+         -  [x] `space_after_fence` option
  -  [x] Check mode for CI integration
  -  [x] Disable directives
  -  [x] Edge case handling

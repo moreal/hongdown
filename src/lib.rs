@@ -55,6 +55,9 @@ pub struct Options {
 
     /// Minimum fence length for code blocks. Default: 4.
     pub min_fence_length: usize,
+
+    /// Add space between fence and language identifier. Default: true.
+    pub space_after_fence: bool,
 }
 
 impl Default for Options {
@@ -71,6 +74,7 @@ impl Default for Options {
             even_level_marker: ')',
             fence_char: '~',
             min_fence_length: 4,
+            space_after_fence: true,
         }
     }
 }
