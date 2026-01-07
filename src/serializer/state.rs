@@ -77,6 +77,8 @@ pub struct Serializer<'a> {
     pub skip_next_block: bool,
     /// Skip formatting until the next section heading
     pub skip_until_section: bool,
+    /// Whether we're inside a description details block (for indentation)
+    pub in_description_details: bool,
 }
 
 impl<'a> Serializer<'a> {
@@ -94,6 +96,7 @@ impl<'a> Serializer<'a> {
             formatting_disabled: false,
             skip_next_block: false,
             skip_until_section: false,
+            in_description_details: false,
         }
     }
 

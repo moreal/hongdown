@@ -52,19 +52,32 @@ impl<'a> Serializer<'a> {
             self.output.push_str("> ");
         }
 
+        // Add extra indentation if inside a description details block
+        // (lists inside definition list details need 5-space base indent: "     ")
+        let desc_base_indent = if self.in_description_details {
+            "     "
+        } else {
+            ""
+        };
+
         // Calculate indentation for nested lists
         // Level 1: " -  " (1 leading space + hyphen + 2 trailing spaces)
         // Level 2+: 4 spaces per additional level
         // This gives: level 1 = " -  ", level 2 = "    -  " (4 spaces), etc.
         if self.list_depth > 1 {
-            let indent = "    ".repeat(self.list_depth - 1);
+            let indent = format!("{}{}", desc_base_indent, "    ".repeat(self.list_depth - 1));
             self.output.push_str(&indent);
+        } else {
+            self.output.push_str(desc_base_indent);
         }
 
         match self.list_type {
             Some(ListType::Bullet) => {
                 if self.list_depth > 1 {
                     // Nested bullets: "-  " (no leading space, hyphen, two trailing spaces)
+                    self.output.push_str("-  ");
+                } else if self.in_description_details {
+                    // Inside description details: "-  " (no leading space, already indented)
                     self.output.push_str("-  ");
                 } else {
                     // Top-level bullets: " -  " (one leading space)
@@ -74,6 +87,10 @@ impl<'a> Serializer<'a> {
             Some(ListType::Ordered) => {
                 if self.list_depth > 1 {
                     // Nested ordered: "N. "
+                    self.output.push_str(&self.list_item_index.to_string());
+                    self.output.push_str(". ");
+                } else if self.in_description_details {
+                    // Inside description details: "N. " (no leading space)
                     self.output.push_str(&self.list_item_index.to_string());
                     self.output.push_str(". ");
                 } else {
@@ -97,7 +114,12 @@ impl<'a> Serializer<'a> {
 
         // Serialize children, handling nested lists and multiple paragraphs
         let children: Vec<_> = node.children().collect();
-        let base_indent = "    ".repeat(self.list_depth);
+        let base_indent = if self.in_description_details {
+            // Inside description details, add extra 5-space indent
+            format!("     {}", "    ".repeat(self.list_depth))
+        } else {
+            "    ".repeat(self.list_depth)
+        };
 
         for (i, child) in children.iter().enumerate() {
             let is_first = i == 0;

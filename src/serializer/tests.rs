@@ -1312,3 +1312,21 @@ fn test_abbreviation_definition_multiple() {
     assert!(result.contains("*[HTML]: HyperText Markup Language"));
     assert!(result.contains("*[CSS]: Cascading Style Sheets"));
 }
+
+#[test]
+fn test_definition_list_with_nested_list() {
+    let input = "Term\n:   Definition with list:\n\n     -  First item\n     -  Second item";
+    let result = parse_and_serialize(input);
+    // All items should have 5-space indent inside definition details
+    assert!(result.contains("     -  First item"));
+    assert!(result.contains("     -  Second item"));
+}
+
+#[test]
+fn test_definition_list_with_nested_list_continuation() {
+    let input = "Term\n:   Definition:\n\n     -  Item with long text\n        that continues";
+    let result = parse_and_serialize(input);
+    // Continuation should also have proper indent
+    assert!(result.contains("     -  Item with long text"));
+    assert!(result.contains("         that continues"));
+}

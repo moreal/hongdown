@@ -140,6 +140,10 @@ impl<'a> Serializer<'a> {
     pub(super) fn serialize_description_details<'b>(&mut self, node: &'b AstNode<'b>) {
         let children: Vec<_> = node.children().collect();
 
+        // Set flag so nested lists know to add extra indentation
+        let was_in_description_details = self.in_description_details;
+        self.in_description_details = true;
+
         for (i, child) in children.iter().enumerate() {
             let child_value = &child.data.borrow().value;
 
@@ -193,6 +197,10 @@ impl<'a> Serializer<'a> {
                         self.output.push_str("    ");
                         self.serialize_code_block_with_indent(code, "    ");
                     }
+                    NodeValue::List(_) => {
+                        // Lists handle their own indentation via in_description_details flag
+                        self.serialize_node(child);
+                    }
                     _ => {
                         // Other block types
                         self.output.push_str("    ");
@@ -201,6 +209,8 @@ impl<'a> Serializer<'a> {
                 }
             }
         }
+
+        self.in_description_details = was_in_description_details;
     }
 
     pub(super) fn serialize_heading<'b>(&mut self, node: &'b AstNode<'b>, level: u8) {
@@ -253,7 +263,12 @@ impl<'a> Serializer<'a> {
             // First line has no prefix (marker already output)
             // Continuation lines need 4-space indent per nesting level
             // (to align with list item content at each level)
-            let base_indent = "    ".repeat(self.list_depth);
+            let base_indent = if self.in_description_details {
+                // Inside description details, add extra 5-space indent
+                format!("     {}", "    ".repeat(self.list_depth))
+            } else {
+                "    ".repeat(self.list_depth)
+            };
             let continuation = if self.in_block_quote {
                 format!("> {}", base_indent)
             } else {
