@@ -126,34 +126,37 @@ Hongdown looks for a `.hongdown.toml` file in the current directory and
 parent directories.  You can also specify a configuration file explicitly
 with the `--config` option.
 
+Below is an example configuration with all available options and their
+default values:
+
 ~~~~ toml
 # File patterns (glob syntax)
-include = ["*.md", "docs/**/*.md"]  # Files to format
-exclude = ["node_modules/**"]        # Files to skip
+include = []              # Files to format (default: none, specify on CLI)
+exclude = []              # Files to skip (default: none)
 
 # Formatting options
-line_width = 80
+line_width = 80           # Maximum line width (default: 80)
 
 [heading]
-setext_h1 = true          # Use === underline for h1
-setext_h2 = true          # Use --- underline for h2
+setext_h1 = true          # Use === underline for h1 (default: true)
+setext_h2 = true          # Use --- underline for h2 (default: true)
 
 [list]
-unordered_marker = "-"    # "-", "*", or "+"
-leading_spaces = 1        # Spaces before marker
-trailing_spaces = 2       # Spaces after marker
-indent_width = 4          # Indentation for nested items
+unordered_marker = "-"    # "-", "*", or "+" (default: "-")
+leading_spaces = 1        # Spaces before marker (default: 1)
+trailing_spaces = 2       # Spaces after marker (default: 2)
+indent_width = 4          # Indentation for nested items (default: 4)
 
 [ordered_list]
-odd_level_marker = "."    # "1." at odd nesting levels
-even_level_marker = ")"   # "1)" at even nesting levels
-pad = "start"             # "start" or "end" for number alignment
-indent_width = 4          # Indentation for nested items
+odd_level_marker = "."    # "." or ")" at odd nesting levels (default: ".")
+even_level_marker = ")"   # "." or ")" at even nesting levels (default: ")")
+pad = "start"             # "start" or "end" for number alignment (default: "start")
+indent_width = 4          # Indentation for nested items (default: 4)
 
 [code_block]
-fence_char = "~"          # "~" or "`"
-min_fence_length = 4      # Minimum fence length
-space_after_fence = true  # Space between fence and language
+fence_char = "~"          # "~" or "`" (default: "~")
+min_fence_length = 4      # Minimum fence length (default: 4)
+space_after_fence = true  # Space between fence and language (default: true)
 ~~~~
 
 When `include` patterns are configured, you can run Hongdown without
@@ -207,7 +210,7 @@ Section
 ~~~~ markdown
  -  First item
  -  Second item
-    -  Nested item
+     -  Nested item
 ~~~~
 
 ### Code blocks
