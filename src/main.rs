@@ -10,6 +10,7 @@ use clap::Parser;
 use hongdown::config::Config;
 use hongdown::{Options, format_with_warnings};
 use rayon::prelude::*;
+use similar::{ChangeTag, TextDiff};
 
 /// A Markdown formatter that enforces Hong Minhee's Markdown style conventions.
 #[derive(Parser, Debug)]
@@ -21,12 +22,16 @@ struct Args {
     files: Vec<PathBuf>,
 
     /// Write formatted output back to the input file(s).
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with_all = ["check", "diff"])]
     write: bool,
 
     /// Check if files are already formatted (exit 1 if not).
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with_all = ["write", "diff"])]
     check: bool,
+
+    /// Show a diff of formatting changes.
+    #[arg(short, long, conflicts_with_all = ["write", "check"])]
+    diff: bool,
 
     /// Read input from stdin.
     #[arg(long)]
@@ -77,7 +82,11 @@ fn main() -> ExitCode {
                 for warning in &result.warnings {
                     eprintln!("<stdin>:{}: warning: {}", warning.line, warning.message);
                 }
-                print!("{}", result.output);
+                if args.diff {
+                    print_diff("<stdin>", &input, &result.output);
+                } else {
+                    print!("{}", result.output);
+                }
                 ExitCode::SUCCESS
             }
             Err(e) => {
@@ -88,6 +97,9 @@ fn main() -> ExitCode {
     } else if args.write || args.check {
         // Parallel processing for --write and --check modes
         process_files_parallel(&args.files, &options, args.write, args.check)
+    } else if args.diff {
+        // Diff mode for files
+        process_files_diff(&args.files, &options)
     } else {
         // Sequential processing for stdout mode (order matters)
         process_files_sequential(&args.files, &options)
@@ -185,6 +197,67 @@ fn process_files_sequential(files: &[PathBuf], options: &Options) -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+/// Process files in diff mode.
+fn process_files_diff(files: &[PathBuf], options: &Options) -> ExitCode {
+    for file in files {
+        let input = match fs::read_to_string(file) {
+            Ok(content) => content,
+            Err(e) => {
+                eprintln!("Error reading {}: {}", file.display(), e);
+                return ExitCode::FAILURE;
+            }
+        };
+
+        match format_with_warnings(&input, options) {
+            Ok(result) => {
+                // Print warnings to stderr
+                for warning in &result.warnings {
+                    eprintln!(
+                        "{}:{}: warning: {}",
+                        file.display(),
+                        warning.line,
+                        warning.message
+                    );
+                }
+                print_diff(&file.display().to_string(), &input, &result.output);
+            }
+            Err(e) => {
+                eprintln!("Error formatting {}: {}", file.display(), e);
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+
+    ExitCode::SUCCESS
+}
+
+/// Print a unified diff between original and formatted content.
+fn print_diff(filename: &str, original: &str, formatted: &str) {
+    if original == formatted {
+        return;
+    }
+
+    let diff = TextDiff::from_lines(original, formatted);
+
+    println!("--- {}", filename);
+    println!("+++ {}", filename);
+
+    for hunk in diff.unified_diff().iter_hunks() {
+        println!("{}", hunk.header());
+        for change in hunk.iter_changes() {
+            let sign = match change.tag() {
+                ChangeTag::Delete => '-',
+                ChangeTag::Insert => '+',
+                ChangeTag::Equal => ' ',
+            };
+            print!("{}{}", sign, change.value());
+            if !change.value().ends_with('\n') {
+                println!();
+            }
+        }
+    }
 }
 
 /// Load configuration from file or use defaults.

@@ -47,6 +47,10 @@ hongdown -w *.md
 hongdown --check input.md
 hongdown -c input.md
 
+# Show diff of formatting changes
+hongdown --diff input.md
+hongdown -d input.md
+
 # Read from stdin
 echo "# Hello" | hongdown
 hongdown --stdin < input.md
@@ -262,6 +266,7 @@ TODO
         -  [x] `min_fence_length` option
         -  [x] `space_after_fence` option
  -  [x] Check mode for CI integration
+ -  [x] Diff output mode
  -  [x] Disable directives
  -  [x] Edge case handling
  -  [ ] Performance optimization

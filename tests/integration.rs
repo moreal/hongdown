@@ -123,3 +123,123 @@ fn test_whitespace_only() {
     // Should produce empty or minimal output
     assert!(result.trim().is_empty() || result.is_empty());
 }
+
+mod cli_tests {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    /// Helper function to run hongdown CLI with given args and stdin input.
+    fn run_hongdown(args: &[&str], stdin_input: Option<&str>) -> (String, String, i32) {
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_hongdown"));
+        cmd.args(args);
+
+        if stdin_input.is_some() {
+            cmd.stdin(Stdio::piped());
+        }
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
+        let mut child = cmd.spawn().expect("Failed to spawn hongdown");
+
+        if let Some(input) = stdin_input {
+            let mut stdin = child.stdin.take().expect("Failed to get stdin");
+            stdin
+                .write_all(input.as_bytes())
+                .expect("Failed to write to stdin");
+        }
+
+        let output = child.wait_with_output().expect("Failed to wait for output");
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let exit_code = output.status.code().unwrap_or(-1);
+
+        (stdout, stderr, exit_code)
+    }
+
+    /// Test --diff flag shows no output when input is already formatted.
+    #[test]
+    fn test_diff_no_changes() {
+        let formatted_input = "Title\n=====\n\nA paragraph.\n";
+        let (stdout, _stderr, exit_code) =
+            run_hongdown(&["--diff", "--stdin"], Some(formatted_input));
+
+        // No diff output when already formatted
+        assert!(stdout.is_empty(), "No diff expected for formatted input");
+        assert_eq!(exit_code, 0);
+    }
+
+    /// Test --diff flag shows unified diff when input needs formatting.
+    #[test]
+    fn test_diff_with_changes() {
+        let unformatted_input = "# Title\n\nA paragraph.";
+        let (stdout, _stderr, exit_code) =
+            run_hongdown(&["--diff", "--stdin"], Some(unformatted_input));
+
+        // Should show diff output
+        assert!(stdout.contains("---"), "Diff should contain --- header");
+        assert!(stdout.contains("+++"), "Diff should contain +++ header");
+        assert!(stdout.contains("-# Title"), "Diff should show removed line");
+        assert!(stdout.contains("+Title"), "Diff should show added line");
+        assert!(
+            stdout.contains("+====="),
+            "Diff should show added underline"
+        );
+        assert_eq!(exit_code, 0);
+    }
+
+    /// Test --diff with file input.
+    #[test]
+    fn test_diff_with_file() {
+        use std::fs;
+        use tempfile::NamedTempFile;
+
+        // Create a temporary file with unformatted content
+        let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        writeln!(temp_file, "# Test Heading").expect("Failed to write to temp file");
+        writeln!(temp_file).expect("Failed to write to temp file");
+        writeln!(temp_file, "A paragraph.").expect("Failed to write to temp file");
+
+        let file_path = temp_file.path().to_str().unwrap();
+        let (stdout, _stderr, exit_code) = run_hongdown(&["--diff", file_path], None);
+
+        // Should show diff with filename in header
+        assert!(stdout.contains("---"), "Diff should contain --- header");
+        assert!(stdout.contains("+++"), "Diff should contain +++ header");
+        assert_eq!(exit_code, 0);
+
+        // File should not be modified
+        let content = fs::read_to_string(temp_file.path()).expect("Failed to read temp file");
+        assert!(
+            content.contains("# Test Heading"),
+            "File should not be modified"
+        );
+    }
+
+    /// Test --diff and --check are mutually exclusive.
+    #[test]
+    fn test_diff_check_mutually_exclusive() {
+        let (_stdout, stderr, exit_code) =
+            run_hongdown(&["--diff", "--check", "--stdin"], Some("# Test"));
+
+        // Should fail with error about conflicting options
+        assert_ne!(exit_code, 0);
+        assert!(
+            stderr.contains("cannot be used with") || stderr.contains("conflict"),
+            "Should report conflicting options"
+        );
+    }
+
+    /// Test --diff and --write are mutually exclusive.
+    #[test]
+    fn test_diff_write_mutually_exclusive() {
+        let (_stdout, stderr, exit_code) =
+            run_hongdown(&["--diff", "--write", "--stdin"], Some("# Test"));
+
+        // Should fail with error about conflicting options
+        assert_ne!(exit_code, 0);
+        assert!(
+            stderr.contains("cannot be used with") || stderr.contains("conflict"),
+            "Should report conflicting options"
+        );
+    }
+}
