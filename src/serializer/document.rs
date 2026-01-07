@@ -68,13 +68,16 @@ impl<'a> Serializer<'a> {
                 }
             }
 
-            // Check if we're about to start a new section (h2 heading)
+            // Check if we're about to start a new section (h2 or h3 heading)
             // If so, flush any pending references first
-            let is_h2 = matches!(
-                &child.data.borrow().value,
-                NodeValue::Heading(h) if h.level == 2
-            );
-            if is_h2 && i > 0 {
+            let heading_level = match &child.data.borrow().value {
+                NodeValue::Heading(h) => Some(h.level),
+                _ => None,
+            };
+            let is_h2 = heading_level == Some(2);
+            let is_h2_or_h3 = matches!(heading_level, Some(2) | Some(3));
+
+            if is_h2_or_h3 && i > 0 {
                 self.flush_references();
             }
 
