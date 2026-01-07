@@ -90,6 +90,45 @@ This section is not formatted.
 This section is formatted again.
 ~~~~
 
+### Configuration file
+
+Hongdown looks for a `.hongdown.toml` file in the current directory and
+parent directories.  You can also specify a configuration file explicitly
+with the `--config` option.
+
+~~~~ toml
+line_width = 80
+
+[heading]
+setext_h1 = true          # Use === underline for h1
+setext_h2 = true          # Use --- underline for h2
+
+[list]
+unordered_marker = "-"    # "-", "*", or "+"
+leading_spaces = 1        # Spaces before marker
+trailing_spaces = 2       # Spaces after marker
+indent_width = 4          # Indentation for nested items
+
+[ordered_list]
+odd_level_marker = "."    # "1." at odd nesting levels
+even_level_marker = ")"   # "1)" at even nesting levels
+
+[code_block]
+fence_char = "~"          # "~" or "`"
+min_fence_length = 4      # Minimum fence length
+space_after_fence = true  # Space between fence and language
+~~~~
+
+CLI options override configuration file settings:
+
+~~~~ bash
+# Use config file but override line width
+hongdown --line-width 100 input.md
+
+# Use specific config file
+hongdown --config /path/to/.hongdown.toml input.md
+~~~~
+
 
 Style rules
 -----------
