@@ -43,6 +43,20 @@ impl<'a> Serializer<'a> {
             NodeValue::Code(code) => {
                 text.push_str(&escape::format_code_span(&code.literal));
             }
+            NodeValue::Emph => {
+                text.push('*');
+                for child in node.children() {
+                    self.collect_text_recursive(child, text);
+                }
+                text.push('*');
+            }
+            NodeValue::Strong => {
+                text.push_str("**");
+                for child in node.children() {
+                    self.collect_text_recursive(child, text);
+                }
+                text.push_str("**");
+            }
             NodeValue::SoftBreak => {
                 text.push(' ');
             }

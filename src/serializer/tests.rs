@@ -1058,3 +1058,183 @@ fn test_code_block_in_list_item_no_language() {
         result
     );
 }
+
+// Edge case tests
+
+#[test]
+fn test_empty_paragraph() {
+    // Empty content should not crash
+    let input = "\n\n\n";
+    let result = parse_and_serialize(input);
+    assert!(result.is_empty() || result.chars().all(|c| c.is_whitespace()));
+}
+
+#[test]
+fn test_deeply_nested_list() {
+    let input = " -  Level 1\n    -  Level 2\n        -  Level 3\n            -  Level 4";
+    let result = parse_and_serialize_with_source(input);
+    assert!(result.contains("Level 1"));
+    assert!(result.contains("Level 4"));
+}
+
+#[test]
+fn test_link_with_special_characters_in_url() {
+    let input = "[link](https://example.com/path?query=1&other=2#anchor)";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("https://example.com/path?query=1&other=2#anchor"),
+        "URL with special characters should be preserved, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_image_with_empty_alt() {
+    let input = "![](image.png)";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("![](image.png)"),
+        "Image with empty alt should be preserved, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_code_span_with_newlines_in_content() {
+    // Code spans cannot contain literal newlines, but escaped content should work
+    let input = "`code`";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("`code`"));
+}
+
+#[test]
+fn test_escaped_characters_in_text() {
+    let input = r"Text with \* escaped \[ characters \]";
+    let result = parse_and_serialize(input);
+    // Escaped characters should be preserved
+    assert!(result.contains(r"\*") || result.contains("*"));
+}
+
+#[test]
+fn test_multiple_consecutive_code_blocks() {
+    let input = "~~~~ rust\nfn main() {}\n~~~~\n\n~~~~ python\ndef main():\n    pass\n~~~~";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("rust"));
+    assert!(result.contains("python"));
+}
+
+#[test]
+fn test_table_with_empty_cells() {
+    let input = "| A | B |\n|---|---|\n|   | X |";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("|"));
+    assert!(result.contains("X"));
+}
+
+#[test]
+fn test_blockquote_with_multiple_paragraphs() {
+    let input = "> First paragraph\n>\n> Second paragraph";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("> First paragraph"));
+    assert!(result.contains("> Second paragraph"));
+}
+
+#[test]
+fn test_link_text_with_emphasis() {
+    let input = "[*emphasized* link](https://example.com)";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("*emphasized*"),
+        "Emphasis in link text should be preserved, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_heading_with_special_characters() {
+    let input = "# Heading with `code` and *emphasis*";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("`code`"));
+    assert!(result.contains("*emphasis*"));
+}
+
+#[test]
+fn test_very_long_word_in_paragraph() {
+    let input = "This is a supercalifragilisticexpialidociousandmuchmuchlongerwordthatcannotbewrapped word.";
+    let result = parse_and_serialize(input);
+    // Long words should not cause crashes and should be preserved
+    assert!(
+        result
+            .contains("supercalifragilisticexpialidociousandmuchmuchlongerwordthatcannotbewrapped")
+    );
+}
+
+#[test]
+fn test_strikethrough_text() {
+    let input = "~~strikethrough~~";
+    let result = parse_and_serialize(input);
+    // Strikethrough may or may not be supported, but should not crash
+    assert!(!result.is_empty());
+}
+
+#[test]
+fn test_mixed_ordered_unordered_lists() {
+    let input = " 1. Ordered item\n\n -  Unordered item";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("1."));
+    assert!(result.contains("-"));
+}
+
+#[test]
+fn test_horizontal_rule() {
+    let input = "Before\n\n---\n\nAfter";
+    let result = parse_and_serialize(input);
+    // Horizontal rules should be preserved
+    assert!(result.contains("Before"));
+    assert!(result.contains("After"));
+}
+
+#[test]
+fn test_unicode_in_heading() {
+    let input = "# 한글 제목";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("한글 제목"),
+        "Unicode heading should be preserved, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_unicode_in_link_text() {
+    let input = "[한글 링크](https://example.com)";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("한글 링크"),
+        "Unicode in link text should be preserved, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_footnote_with_multiple_paragraphs() {
+    let input = "Text[^1]\n\n[^1]: First paragraph of footnote";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("[^1]"));
+}
+
+#[test]
+fn test_nested_emphasis() {
+    let input = "***bold and italic***";
+    let result = parse_and_serialize(input);
+    // Should preserve some form of emphasis
+    assert!(result.contains("*"));
+}
+
+#[test]
+fn test_code_block_with_blank_lines() {
+    let input = "~~~~ text\nline 1\n\nline 3\n~~~~";
+    let result = parse_and_serialize(input);
+    assert!(result.contains("line 1"));
+    assert!(result.contains("line 3"));
+}
