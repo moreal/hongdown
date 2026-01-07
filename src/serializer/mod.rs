@@ -185,7 +185,6 @@ impl<'a> Serializer<'a> {
     }
 
     /// Format a reference-style link and write to output buffer.
-    /// Returns true if reference style was used, false otherwise.
     fn format_reference_link(
         &mut self,
         output: &mut String,
@@ -193,23 +192,8 @@ impl<'a> Serializer<'a> {
         label: &str,
         url: &str,
         title: &str,
-        contains_image: bool,
-        image_content: Option<&str>,
-    ) -> bool {
-        if contains_image {
-            // Badge-style with reference: [![alt][img-ref]][link-ref]
-            let actual_label = label.strip_prefix('\x01').unwrap_or(label);
-            output.push('[');
-            if let Some(img) = image_content {
-                output.push_str(img);
-            }
-            output.push_str("][");
-            output.push_str(actual_label);
-            output.push(']');
-
-            self.add_reference(actual_label.to_string(), url.to_string(), title.to_string());
-            true
-        } else if label.starts_with('\x01') {
+    ) {
+        if label.starts_with('\x01') {
             // Collapsed reference: [text][]
             let actual_label = label.strip_prefix('\x01').unwrap();
             output.push('[');
@@ -217,7 +201,6 @@ impl<'a> Serializer<'a> {
             output.push_str("][]");
 
             self.add_reference(actual_label.to_string(), url.to_string(), title.to_string());
-            true
         } else if text == label {
             // Shortcut reference: [text]
             output.push('[');
@@ -225,7 +208,6 @@ impl<'a> Serializer<'a> {
             output.push(']');
 
             self.add_reference(label.to_string(), url.to_string(), title.to_string());
-            true
         } else {
             // Full reference: [text][label]
             output.push('[');
@@ -235,45 +217,21 @@ impl<'a> Serializer<'a> {
             output.push(']');
 
             self.add_reference(label.to_string(), url.to_string(), title.to_string());
-            true
         }
     }
 
     /// Format an inline-style link and write to output buffer.
-    fn format_inline_link(
-        output: &mut String,
-        text: &str,
-        url: &str,
-        title: &str,
-        contains_image: bool,
-        image_content: Option<&str>,
-    ) {
-        if contains_image {
-            // Badge-style inline: [![alt](img-url)](link-url)
-            output.push('[');
-            if let Some(img) = image_content {
-                output.push_str(img);
-            }
-            output.push_str("](");
-            output.push_str(url);
-            if !title.is_empty() {
-                output.push_str(" \"");
-                output.push_str(title);
-                output.push('"');
-            }
-            output.push(')');
-        } else {
-            output.push('[');
-            output.push_str(text);
-            output.push_str("](");
-            output.push_str(url);
-            if !title.is_empty() {
-                output.push_str(" \"");
-                output.push_str(title);
-                output.push('"');
-            }
-            output.push(')');
+    fn format_inline_link(output: &mut String, text: &str, url: &str, title: &str) {
+        output.push('[');
+        output.push_str(text);
+        output.push_str("](");
+        output.push_str(url);
+        if !title.is_empty() {
+            output.push_str(" \"");
+            output.push_str(title);
+            output.push('"');
         }
+        output.push(')');
     }
 
     /// Format an autolink and write to output buffer.
@@ -752,7 +710,7 @@ impl<'a> Serializer<'a> {
             } else {
                 // Use helper for non-badge reference links
                 let mut output = String::new();
-                self.format_reference_link(&mut output, &text, &label, url, title, false, None);
+                self.format_reference_link(&mut output, &text, &label, url, title);
                 self.output.push_str(&output);
             }
         } else if contains_image {
@@ -779,7 +737,7 @@ impl<'a> Serializer<'a> {
         } else {
             // Relative/local URL: keep as inline link
             let link_text = self.collect_text(node);
-            Self::format_inline_link(&mut self.output, &link_text, url, title, false, None);
+            Self::format_inline_link(&mut self.output, &link_text, url, title);
         }
     }
 
@@ -948,15 +906,7 @@ impl<'a> Serializer<'a> {
                         );
                     } else {
                         // Non-badge reference links: use helper
-                        self.format_reference_link(
-                            content,
-                            &text,
-                            &label,
-                            &link.url,
-                            &link.title,
-                            false,
-                            None,
-                        );
+                        self.format_reference_link(content, &text, &label, &link.url, &link.title);
                     }
                 } else if contains_image {
                     // Badge-style inline: [![alt](img-url)](link-url)
@@ -993,14 +943,7 @@ impl<'a> Serializer<'a> {
                     for child in node.children() {
                         self.collect_inline_node(child, &mut link_text);
                     }
-                    Self::format_inline_link(
-                        content,
-                        &link_text,
-                        &link.url,
-                        &link.title,
-                        false,
-                        None,
-                    );
+                    Self::format_inline_link(content, &link_text, &link.url, &link.title);
                 }
             }
             NodeValue::Image(image) => {
