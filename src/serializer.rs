@@ -271,10 +271,33 @@ impl<'a> Serializer<'a> {
                         result.push(ch);
                     }
                 }
-                // Characters that could start links/images
-                '[' | ']' => {
-                    result.push('\\');
-                    result.push(ch);
+                // Square brackets - only escape if they could form a link
+                // A '[' at the end can't start a link, ']' at the start can't close one
+                // Adjacent brackets like '[[' or ']]' also don't need escaping
+                '[' => {
+                    let next_is_bracket = i + 1 < chars.len() && chars[i + 1] == '[';
+                    let at_end = i + 1 >= chars.len();
+                    if next_is_bracket || at_end {
+                        result.push(ch);
+                    } else {
+                        result.push('\\');
+                        result.push(ch);
+                    }
+                }
+                ']' => {
+                    let prev_is_bracket = i > 0 && chars[i - 1] == ']';
+                    let at_start = i == 0;
+                    let at_end = i + 1 >= chars.len();
+                    // A ']' can only close a link if followed by '(' or '['
+                    // At end of text or followed by other chars, it's just text
+                    let next_could_continue_link =
+                        i + 1 < chars.len() && (chars[i + 1] == '(' || chars[i + 1] == '[');
+                    if prev_is_bracket || at_start || at_end || !next_could_continue_link {
+                        result.push(ch);
+                    } else {
+                        result.push('\\');
+                        result.push(ch);
+                    }
                 }
                 // Backslash itself needs escaping
                 '\\' => {
@@ -2287,9 +2310,32 @@ Check [Python](https://python.org/) too.
     #[test]
     fn test_serialize_escaped_brackets() {
         // Escaped brackets should be preserved (not treated as links)
+        // The closing ] at end of text doesn't need escaping (can't close a link)
         let input = r"\[not a link\]";
         let result = parse_and_serialize(input);
-        assert_eq!(result, "\\[not a link\\]\n");
+        assert_eq!(result, "\\[not a link]\n");
+    }
+
+    #[test]
+    fn test_double_brackets_preserved() {
+        // Double brackets around references (common in changelogs) should not be escaped
+        let input = "See [[#123]] for details.\n\n[#123]: https://example.com/123\n";
+        let result = parse_and_serialize(input);
+        assert_eq!(
+            result,
+            "See [[#123]] for details.\n\n[#123]: https://example.com/123\n"
+        );
+    }
+
+    #[test]
+    fn test_double_brackets_with_multiple_refs() {
+        // Double brackets with multiple references and text
+        let input = "[[#120], [#121] by Author]\n\n[#120]: https://example.com/120\n[#121]: https://example.com/121\n";
+        let result = parse_and_serialize(input);
+        assert_eq!(
+            result,
+            "[[#120], [#121] by Author]\n\n[#120]: https://example.com/120\n[#121]: https://example.com/121\n"
+        );
     }
 
     #[test]
