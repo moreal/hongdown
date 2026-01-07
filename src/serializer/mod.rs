@@ -532,15 +532,14 @@ impl<'a> Serializer<'a> {
                 }
 
                 // For skip_until_section, check if this is a heading to reset
-                if self.skip_until_section {
-                    if let NodeValue::Heading(h) = &child.data.borrow().value {
-                        if h.level <= 2 {
-                            self.skip_until_section = false;
-                            // Continue with normal formatting for this heading
-                            self.serialize_node(child);
-                            continue;
-                        }
-                    }
+                if self.skip_until_section
+                    && let NodeValue::Heading(h) = &child.data.borrow().value
+                    && h.level <= 2
+                {
+                    self.skip_until_section = false;
+                    // Continue with normal formatting for this heading
+                    self.serialize_node(child);
+                    continue;
                 }
 
                 // Output the original source
