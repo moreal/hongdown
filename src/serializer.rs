@@ -1,6 +1,6 @@
 //! Serializer for converting comrak AST to formatted Markdown.
 
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use comrak::nodes::{AlertType, AstNode, ListType, NodeTable, NodeValue, TableAlignment};
 
@@ -79,8 +79,8 @@ struct Serializer<'a> {
     /// Whether we're inside a block quote
     in_block_quote: bool,
     /// Reference links collected for the current section
-    /// Key: URL, Value: ReferenceLink
-    pending_references: HashMap<String, ReferenceLink>,
+    /// Key: URL, Value: ReferenceLink (insertion order preserved)
+    pending_references: IndexMap<String, ReferenceLink>,
     /// Current list nesting depth (0 = not in list, 1 = top-level, 2+ = nested)
     list_depth: usize,
     /// Formatting is disabled (by `hongdown-disable` or `hongdown-disable-file`)
@@ -101,7 +101,7 @@ impl<'a> Serializer<'a> {
             list_type: None,
             list_tight: true,
             in_block_quote: false,
-            pending_references: HashMap::new(),
+            pending_references: IndexMap::new(),
             list_depth: 0,
             formatting_disabled: false,
             skip_next_block: false,
@@ -304,9 +304,15 @@ impl<'a> Serializer<'a> {
             return;
         }
 
-        // Sort references by label for consistent output
-        let mut refs: Vec<_> = self.pending_references.values().collect();
-        refs.sort_by(|a, b| a.label.to_lowercase().cmp(&b.label.to_lowercase()));
+        // Take ownership of references to avoid borrow issues
+        let refs: Vec<ReferenceLink> = self.pending_references.values().cloned().collect();
+        self.pending_references.clear();
+
+        // Count numeric references to decide sorting strategy
+        let numeric_count = refs
+            .iter()
+            .filter(|r| Self::extract_numeric_label(&r.label).is_some())
+            .count();
 
         // Add a blank line before references if not already present
         if !self.output.ends_with("\n\n") {
@@ -317,20 +323,58 @@ impl<'a> Serializer<'a> {
             }
         }
 
-        for reference in refs {
-            self.output.push('[');
-            self.output.push_str(&reference.label);
-            self.output.push_str("]: ");
-            self.output.push_str(&reference.url);
-            if !reference.title.is_empty() {
-                self.output.push_str(" \"");
-                self.output.push_str(&reference.title);
-                self.output.push('"');
+        if numeric_count < 2 {
+            // Less than 2 numeric refs: output all in insertion order
+            for reference in &refs {
+                Self::write_reference(&mut self.output, reference);
             }
-            self.output.push('\n');
-        }
+        } else {
+            // 2+ numeric refs: separate, sort numeric ones, output regular first
+            let mut regular_refs: Vec<&ReferenceLink> = Vec::new();
+            let mut numeric_refs: Vec<(u64, &ReferenceLink)> = Vec::new();
 
-        self.pending_references.clear();
+            for reference in &refs {
+                if let Some(num) = Self::extract_numeric_label(&reference.label) {
+                    numeric_refs.push((num, reference));
+                } else {
+                    regular_refs.push(reference);
+                }
+            }
+
+            // Sort numeric references by their numeric value
+            numeric_refs.sort_by_key(|(num, _)| *num);
+
+            // Output regular references first (in insertion order)
+            for reference in regular_refs {
+                Self::write_reference(&mut self.output, reference);
+            }
+
+            // Output numeric references at the end (sorted by number)
+            for (_, reference) in numeric_refs {
+                Self::write_reference(&mut self.output, reference);
+            }
+        }
+    }
+
+    /// Extract numeric value from a label like "123", "#123", "#456"
+    /// Returns None if the label is not numeric
+    fn extract_numeric_label(label: &str) -> Option<u64> {
+        let trimmed = label.strip_prefix('#').unwrap_or(label);
+        trimmed.parse::<u64>().ok()
+    }
+
+    /// Write a single reference definition to output
+    fn write_reference(output: &mut String, reference: &ReferenceLink) {
+        output.push('[');
+        output.push_str(&reference.label);
+        output.push_str("]: ");
+        output.push_str(&reference.url);
+        if !reference.title.is_empty() {
+            output.push_str(" \"");
+            output.push_str(&reference.title);
+            output.push('"');
+        }
+        output.push('\n');
     }
 
     fn serialize_node<'b>(&mut self, node: &'b AstNode<'b>) {
@@ -1761,6 +1805,77 @@ mod tests {
             parse_and_serialize("Visit [Rust](https://www.rust-lang.org/ \"The Rust Language\").");
         assert!(result.contains("Visit [Rust]."));
         assert!(result.contains("[Rust]: https://www.rust-lang.org/ \"The Rust Language\""));
+    }
+
+    #[test]
+    fn test_reference_order_preserved() {
+        // Regular references should maintain insertion order
+        let input =
+            "See [foo](https://foo.com), [bar](https://bar.com), and [baz](https://baz.com).";
+        let result = parse_and_serialize(input);
+        // Find positions of references
+        let foo_pos = result.find("[foo]:").unwrap();
+        let bar_pos = result.find("[bar]:").unwrap();
+        let baz_pos = result.find("[baz]:").unwrap();
+        assert!(
+            foo_pos < bar_pos && bar_pos < baz_pos,
+            "References should be in insertion order, got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_numeric_references_sorted_at_end() {
+        // Numeric references should be sorted by number and placed at the end
+        let input = "See [foo](https://foo.com), [2](https://2.com), [bar](https://bar.com), [1](https://1.com).";
+        let result = parse_and_serialize(input);
+        // foo and bar should come before numeric refs
+        let foo_pos = result.find("[foo]:").unwrap();
+        let bar_pos = result.find("[bar]:").unwrap();
+        let one_pos = result.find("[1]:").unwrap();
+        let two_pos = result.find("[2]:").unwrap();
+        // Regular refs first, in order
+        assert!(foo_pos < bar_pos, "foo should come before bar");
+        // Numeric refs at end, sorted by number
+        assert!(
+            bar_pos < one_pos,
+            "Regular refs should come before numeric refs"
+        );
+        assert!(
+            one_pos < two_pos,
+            "Numeric refs should be sorted: 1 before 2, got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_single_numeric_reference_not_sorted() {
+        // A single numeric reference should stay in insertion order
+        let input = "See [foo](https://foo.com), [1](https://1.com), [bar](https://bar.com).";
+        let result = parse_and_serialize(input);
+        let foo_pos = result.find("[foo]:").unwrap();
+        let one_pos = result.find("[1]:").unwrap();
+        let bar_pos = result.find("[bar]:").unwrap();
+        // With only one numeric ref, it stays in insertion order
+        assert!(
+            foo_pos < one_pos && one_pos < bar_pos,
+            "Single numeric ref should stay in insertion order, got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_hash_numeric_references_sorted() {
+        // References like #123 should also be sorted numerically
+        let input = "See [#456](https://issue/456) and [#123](https://issue/123).";
+        let result = parse_and_serialize(input);
+        let pos_123 = result.find("[#123]:").unwrap();
+        let pos_456 = result.find("[#456]:").unwrap();
+        assert!(
+            pos_123 < pos_456,
+            "#123 should come before #456, got:\n{}",
+            result
+        );
     }
 
     fn parse_and_serialize_with_frontmatter(input: &str) -> String {
