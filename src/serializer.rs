@@ -1311,14 +1311,16 @@ impl<'a> Serializer<'a> {
             return;
         }
 
-        // Collect cell contents and calculate max widths
+        // Collect cell contents (with full inline formatting) and calculate max widths
         let mut all_cells: Vec<Vec<String>> = Vec::new();
         let mut col_widths: Vec<usize> = vec![0; alignments.len()];
 
         for row in &rows {
             let mut row_cells: Vec<String> = Vec::new();
             for (i, cell) in row.children().enumerate() {
-                let content = self.collect_text(cell);
+                // Use collect_inline_content to preserve links and formatting
+                let mut content = String::new();
+                self.collect_inline_content(cell, &mut content);
                 if i < col_widths.len() {
                     col_widths[i] = col_widths[i].max(content.len());
                 }
@@ -1793,6 +1795,43 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_serialize_table_with_links() {
+        // Table cells containing links should preserve the links
+        let input =
+            "| Package | Link |\n|---------|------|\n| [foo](/foo) | [bar](https://bar.com) |";
+        let result = parse_and_serialize_with_table(input);
+        // Links should be preserved in table cells
+        assert!(
+            result.contains("[foo](/foo)"),
+            "Relative link should be preserved in table, got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("[bar]"),
+            "External link text should be preserved in table, got:\n{}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_serialize_table_with_reference_links() {
+        // Table cells containing reference-style links should preserve them
+        let input = "| Package | JSR |\n|---------|-----|\n| [*@pkg/core*](/packages/core/) | [JSR][jsr:@pkg/core] |\n\n[jsr:@pkg/core]: https://jsr.io/@pkg/core";
+        let result = parse_and_serialize_with_source(input);
+        // Reference links should be preserved in table cells
+        assert!(
+            result.contains("[*@pkg/core*](/packages/core/)"),
+            "Link with emphasis should be preserved in table, got:\n{}",
+            result
+        );
+        assert!(
+            result.contains("[JSR][jsr:@pkg/core]"),
+            "Reference-style link should be preserved in table, got:\n{}",
+            result
+        );
     }
 
     fn parse_and_serialize_with_description_list(input: &str) -> String {
