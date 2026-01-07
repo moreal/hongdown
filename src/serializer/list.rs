@@ -61,11 +61,15 @@ impl<'a> Serializer<'a> {
         };
 
         // Calculate indentation for nested lists
-        // Level 1: " -  " (1 leading space + hyphen + 2 trailing spaces)
-        // Level 2+: 4 spaces per additional level
-        // This gives: level 1 = " -  ", level 2 = "    -  " (4 spaces), etc.
+        // Level 1: " -  " (leading space + hyphen + trailing spaces)
+        // Level 2+: indent_width spaces per additional level
+        let indent_str = " ".repeat(self.options.indent_width);
         if self.list_depth > 1 {
-            let indent = format!("{}{}", desc_base_indent, "    ".repeat(self.list_depth - 1));
+            let indent = format!(
+                "{}{}",
+                desc_base_indent,
+                indent_str.repeat(self.list_depth - 1)
+            );
             self.output.push_str(&indent);
         } else {
             self.output.push_str(desc_base_indent);
@@ -124,9 +128,9 @@ impl<'a> Serializer<'a> {
         let children: Vec<_> = node.children().collect();
         let base_indent = if self.in_description_details {
             // Inside description details, add extra 5-space indent
-            format!("     {}", "    ".repeat(self.list_depth))
+            format!("     {}", indent_str.repeat(self.list_depth))
         } else {
-            "    ".repeat(self.list_depth)
+            indent_str.repeat(self.list_depth)
         };
 
         for (i, child) in children.iter().enumerate() {

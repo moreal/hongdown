@@ -53,6 +53,7 @@ fn main() -> ExitCode {
         unordered_marker: config.list.unordered_marker,
         leading_spaces: config.list.leading_spaces,
         trailing_spaces: config.list.trailing_spaces,
+        indent_width: config.list.indent_width,
     };
 
     if args.stdin || args.files.is_empty() {

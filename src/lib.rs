@@ -38,6 +38,9 @@ pub struct Options {
 
     /// Number of trailing spaces after the list marker. Default: 2.
     pub trailing_spaces: usize,
+
+    /// Indentation width for nested list items. Default: 4.
+    pub indent_width: usize,
 }
 
 impl Default for Options {
@@ -49,6 +52,7 @@ impl Default for Options {
             unordered_marker: '-',
             leading_spaces: 1,
             trailing_spaces: 2,
+            indent_width: 4,
         }
     }
 }

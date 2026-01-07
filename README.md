@@ -210,11 +210,11 @@ TODO
      -  [x] `[heading]` section
          -  [x] `setext_h1` option
          -  [x] `setext_h2` option
-     -  [ ] `[list]` section
+     -  [x] `[list]` section
          -  [x] `unordered_marker` option
          -  [x] `leading_spaces` option
          -  [x] `trailing_spaces` option
-         -  [ ] `indent_width` option
+         -  [x] `indent_width` option
      -  [ ] `[ordered_list]` section
          -  [ ] `odd_level_marker` option
          -  [ ] `even_level_marker` option
