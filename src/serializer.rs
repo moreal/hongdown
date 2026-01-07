@@ -210,16 +210,14 @@ impl<'a> Serializer<'a> {
 
         let text_end_pos = text_end_pos?;
 
-        // Look at what comes after the closing bracket
-        let after_close = &source[text_end_pos + 1..];
+        // Convert char indices to strings for safe UTF-8 handling
+        let after_close: String = chars[text_end_pos + 1..].iter().collect();
+        let text: String = chars[first_bracket + 1..text_end_pos].iter().collect();
 
         // If followed by "(", it's inline style
         if after_close.starts_with('(') {
             return None;
         }
-
-        // Extract the text content (between first [ and matching ])
-        let text = source[first_bracket + 1..text_end_pos].to_string();
 
         // If followed by "[", it's full or collapsed reference style
         if let Some(label_content) = after_close.strip_prefix('[') {
@@ -866,6 +864,11 @@ impl<'a> Serializer<'a> {
         match &node.data.borrow().value {
             NodeValue::Text(t) => {
                 text.push_str(&Self::escape_text(t));
+            }
+            NodeValue::Code(code) => {
+                text.push('`');
+                text.push_str(&code.literal);
+                text.push('`');
             }
             NodeValue::SoftBreak => {
                 text.push(' ');
@@ -1998,6 +2001,31 @@ mod tests {
         let root = parse_document(&arena, input, &options);
         let format_options = Options { line_width };
         serialize_with_source(root, &format_options, None)
+    }
+
+    #[test]
+    fn test_heading_with_inline_code() {
+        // Inline code in headings should be preserved
+        let input = "# Heading with `code`";
+        let result = parse_and_serialize(input);
+        assert_eq!(result, "Heading with `code`\n===================\n");
+    }
+
+    #[test]
+    fn test_heading_with_multiple_inline_codes() {
+        // Multiple inline codes in headings
+        let input = "### Looking at the `to`, `cc`, and `bcc` fields";
+        let result = parse_and_serialize(input);
+        assert_eq!(result, "### Looking at the `to`, `cc`, and `bcc` fields\n");
+    }
+
+    #[test]
+    fn test_korean_in_link() {
+        // Korean text in links should not cause panic
+        let input = "[한국어](https://example.com)";
+        let result = parse_and_serialize(input);
+        assert!(result.contains("[한국어]"));
+        assert!(result.contains("https://example.com"));
     }
 
     #[test]
