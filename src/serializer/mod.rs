@@ -275,7 +275,8 @@ impl<'a> Serializer<'a> {
     /// Write a single footnote definition to output, wrapping at 80 characters
     fn write_footnote(&mut self, footnote: &state::FootnoteDefinition) {
         let prefix = format!("[^{}]: ", footnote.name);
-        let continuation_indent = "      "; // 6 spaces for continuation lines
+        // Continuation indent matches prefix length for alignment
+        let continuation_indent = " ".repeat(prefix.len());
 
         // Wrap content at 80 chars, accounting for prefix on first line
         let first_line_width = 80 - prefix.len();
@@ -322,7 +323,7 @@ impl<'a> Serializer<'a> {
                 self.output.push_str(&prefix);
                 self.output.push_str(line);
             } else {
-                self.output.push_str(continuation_indent);
+                self.output.push_str(&continuation_indent);
                 self.output.push_str(line);
             }
             self.output.push('\n');

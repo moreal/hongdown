@@ -1429,3 +1429,19 @@ fn test_footnote_definition_wrapped_at_80_chars() {
         result
     );
 }
+
+#[test]
+fn test_footnote_continuation_indent_matches_prefix() {
+    let input = r#"Text[^note].
+
+[^note]: This is a long footnote with a longer name that should wrap with proper indentation.
+"#;
+    let result = parse_and_serialize_with_source(input);
+    // The continuation line should be indented to align with content after "[^note]: "
+    // "[^note]: " is 9 characters, so continuation should have 9 spaces
+    assert!(
+        result.contains("\n         "), // 9 spaces
+        "Continuation should be indented with 9 spaces to match '[^note]: ', got:\n{}",
+        result
+    );
+}
