@@ -46,7 +46,12 @@ impl<'a> Serializer<'a> {
                 }
             }
             NodeValue::Code(code) => {
-                text.push_str(&escape::format_code_span(&code.literal));
+                // Try to use original source to preserve spacing
+                if let Some(source) = self.extract_source(node) {
+                    text.push_str(&source);
+                } else {
+                    text.push_str(&escape::format_code_span(&code.literal));
+                }
             }
             NodeValue::Emph => {
                 let delim = self.get_emphasis_delimiter(node);
@@ -145,7 +150,12 @@ impl<'a> Serializer<'a> {
                 content.push_str(delim);
             }
             NodeValue::Code(code) => {
-                content.push_str(&escape::format_code_span(&code.literal));
+                // Try to use original source to preserve spacing
+                if let Some(source) = self.extract_source(node) {
+                    content.push_str(&source);
+                } else {
+                    content.push_str(&escape::format_code_span(&code.literal));
+                }
             }
             NodeValue::Link(link) => {
                 // Check if link contains an image (badge-style link)

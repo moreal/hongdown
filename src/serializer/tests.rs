@@ -1173,6 +1173,20 @@ fn test_code_span_with_leading_space() {
 }
 
 #[test]
+fn test_code_span_with_leading_and_trailing_space() {
+    // Code span with space at both start and end - per CommonMark, the parser
+    // strips one space from each end. To preserve the original, we need to
+    // add the spaces back in the output.
+    let input = "Use ` -  ` for list items.";
+    let result = parse_and_serialize_with_source(input);
+    assert!(
+        result.contains("` -  `"),
+        "Code span with leading and trailing space should be preserved, got:\n{}",
+        result
+    );
+}
+
+#[test]
 fn test_reference_link_multiline_text_normalized() {
     // Reference link text spanning multiple lines should be normalized to single line
     let input = "Click [here for\nmore info][1].\n\n[1]: https://example.com";

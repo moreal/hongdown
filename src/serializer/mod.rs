@@ -443,8 +443,13 @@ impl<'a> Serializer<'a> {
                 self.output.push_str("**");
             }
             NodeValue::Code(code) => {
-                self.output
-                    .push_str(&escape::format_code_span(&code.literal));
+                // Try to use original source to preserve spacing
+                if let Some(source) = self.extract_source(node) {
+                    self.output.push_str(&source);
+                } else {
+                    self.output
+                        .push_str(&escape::format_code_span(&code.literal));
+                }
             }
             NodeValue::Link(link) => {
                 self.serialize_link(node, &link.url, &link.title);
