@@ -62,18 +62,24 @@ impl<'a> Serializer<'a> {
         let fence_length = std::cmp::max(min_fence_length, max_fence_in_content + 1);
         let fence: String = std::iter::repeat_n(fence_char, fence_length).collect();
 
-        // Use "text" as default if no language specified
-        let language = if info.is_empty() { "text" } else { info };
+        // Use default_language if no language specified (empty string means no language)
+        let language = if info.is_empty() {
+            &self.options.default_language
+        } else {
+            info
+        };
 
         // Opening fence
         if self.in_block_quote {
             self.output.push_str("> ");
         }
         self.output.push_str(&fence);
-        if self.options.space_after_fence {
-            self.output.push(' ');
+        if !language.is_empty() {
+            if self.options.space_after_fence {
+                self.output.push(' ');
+            }
+            self.output.push_str(language);
         }
-        self.output.push_str(language);
         self.output.push('\n');
 
         // Content lines

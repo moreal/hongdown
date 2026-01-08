@@ -157,6 +157,7 @@ indent_width = 4          # Indentation for nested items (default: 4)
 fence_char = "~"          # "~" or "`" (default: "~")
 min_fence_length = 4      # Minimum fence length (default: 4)
 space_after_fence = true  # Space between fence and language (default: true)
+default_language = ""     # Default language for code blocks (default: "")
 ~~~~
 
 When `include` patterns are configured, you can run Hongdown without

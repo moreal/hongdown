@@ -151,6 +151,11 @@ pub struct CodeBlockConfig {
 
     /// Add space between fence and language identifier (default: true).
     pub space_after_fence: bool,
+
+    /// Default language identifier for code blocks without one (default: empty).
+    /// When empty, code blocks without a language identifier remain without one.
+    /// Set to e.g. "text" to add a default language identifier.
+    pub default_language: String,
 }
 
 impl Default for CodeBlockConfig {
@@ -159,6 +164,7 @@ impl Default for CodeBlockConfig {
             fence_char: '~',
             min_fence_length: 4,
             space_after_fence: true,
+            default_language: String::new(),
         }
     }
 }
@@ -322,6 +328,7 @@ mod tests {
         assert_eq!(config.code_block.fence_char, '~');
         assert_eq!(config.code_block.min_fence_length, 4);
         assert!(config.code_block.space_after_fence);
+        assert_eq!(config.code_block.default_language, "");
     }
 
     #[test]
@@ -421,6 +428,19 @@ space_after_fence = false
         assert_eq!(config.code_block.fence_char, '`');
         assert_eq!(config.code_block.min_fence_length, 3);
         assert!(!config.code_block.space_after_fence);
+        assert_eq!(config.code_block.default_language, ""); // Default is empty
+    }
+
+    #[test]
+    fn test_parse_code_block_default_language() {
+        let config = Config::from_toml(
+            r#"
+[code_block]
+default_language = "text"
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.code_block.default_language, "text");
     }
 
     #[test]

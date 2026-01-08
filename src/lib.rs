@@ -65,6 +65,11 @@ pub struct Options {
 
     /// Add space between fence and language identifier. Default: true.
     pub space_after_fence: bool,
+
+    /// Default language identifier for code blocks without one. Default: empty string.
+    /// When empty, code blocks without a language identifier remain without one.
+    /// Set to e.g. "text" to add a default language identifier.
+    pub default_language: String,
 }
 
 impl Default for Options {
@@ -84,6 +89,7 @@ impl Default for Options {
             fence_char: '~',
             min_fence_length: 4,
             space_after_fence: true,
+            default_language: String::new(),
         }
     }
 }

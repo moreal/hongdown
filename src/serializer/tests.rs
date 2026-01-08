@@ -149,15 +149,16 @@ fn test_serialize_fenced_code_block() {
 
 #[test]
 fn test_serialize_fenced_code_block_no_language() {
+    // Code block without language should remain without language identifier
     let result = parse_and_serialize("```\nsome code\n```");
-    assert_eq!(result, "~~~~ text\nsome code\n~~~~\n");
+    assert_eq!(result, "~~~~\nsome code\n~~~~\n");
 }
 
 #[test]
 fn test_serialize_fenced_code_block_with_tildes_inside() {
     // When code contains ~~~~, use more tildes for the fence
     let result = parse_and_serialize("```\n~~~~\ninner fence\n~~~~\n```");
-    assert_eq!(result, "~~~~~ text\n~~~~\ninner fence\n~~~~\n~~~~~\n");
+    assert_eq!(result, "~~~~~\n~~~~\ninner fence\n~~~~\n~~~~~\n");
 }
 
 #[test]
@@ -2059,5 +2060,29 @@ fn test_definition_list_in_blockquote_multiline() {
         !result.contains("\n:   "),
         "Definition list should not lose > prefix. Got:\n{}",
         result
+    );
+}
+
+#[test]
+fn test_code_block_default_no_language() {
+    // By default, code blocks without a language identifier should stay without one
+    let result = parse_and_serialize("```\nsome code\n```");
+    assert_eq!(
+        result, "~~~~\nsome code\n~~~~\n",
+        "Code block without language should not have language identifier added by default"
+    );
+}
+
+#[test]
+fn test_code_block_custom_default_language() {
+    // When default_language is set, it should be used for code blocks without a language
+    let options = Options {
+        default_language: "text".to_string(),
+        ..Options::default()
+    };
+    let result = parse_and_serialize_with_options("```\nsome code\n```", &options);
+    assert_eq!(
+        result, "~~~~ text\nsome code\n~~~~\n",
+        "Code block without language should use default_language option"
     );
 }
