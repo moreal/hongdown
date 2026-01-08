@@ -1994,3 +1994,20 @@ fn test_setext_heading_with_image_on_previous_line() {
     let result = parse_and_serialize("![](./logo.svg)\nTitle\n=====");
     assert_eq!(result, "![](./logo.svg) Title\n=====================\n");
 }
+
+#[test]
+fn test_wrap_multiline_paragraph_no_orphan_words() {
+    // When wrapping a paragraph with multiple original lines, ensure that
+    // short words are not left orphaned on their own lines when the next
+    // original line would fit on its own
+    let input = "app's appropriate handler for `/users/[handle]`.  Or if you define an actor dispatcher\nfor `/users/{handle}` in Fedify, and the request is made with `Accept:\napplication/activity+json` header, Fedify will dispatch the request to the\nappropriate actor dispatcher.";
+    let result = parse_and_serialize(input);
+    // Should not have "the" alone on a line followed by "appropriate" starting
+    // a new paragraph-like segment - this would happen if we break prematurely
+    // and process "appropriate actor dispatcher." as a separate line
+    assert!(
+        !result.contains("the\nappropriate"),
+        "Word 'the' should not be orphaned when next line fits on its own. Got:\n{}",
+        result
+    );
+}
