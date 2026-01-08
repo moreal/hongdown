@@ -144,9 +144,9 @@ mod cli_tests {
 
         if let Some(input) = stdin_input {
             let mut stdin = child.stdin.take().expect("Failed to get stdin");
-            stdin
-                .write_all(input.as_bytes())
-                .expect("Failed to write to stdin");
+            // Ignore broken pipe errors - the process may have exited early
+            // (e.g., due to argument validation failure) before reading stdin
+            let _ = stdin.write_all(input.as_bytes());
         }
 
         let output = child.wait_with_output().expect("Failed to wait for output");
