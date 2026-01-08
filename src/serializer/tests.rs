@@ -201,6 +201,21 @@ fn test_serialize_mixed_emphasis_preserved() {
 }
 
 #[test]
+fn test_serialize_emphasis_with_asterisk_uses_underscore() {
+    // When emphasis content contains an asterisk, use underscore delimiter
+    // to avoid escaping the asterisk inside
+    let result = parse_and_serialize(r"This is *foo\*bar* text.");
+    assert_eq!(result, "This is _foo\\*bar_ text.\n");
+}
+
+#[test]
+fn test_serialize_strong_with_asterisk_uses_underscore() {
+    // When strong content contains an asterisk, use underscore delimiter
+    let result = parse_and_serialize(r"This is **foo\*bar** text.");
+    assert_eq!(result, "This is __foo\\*bar__ text.\n");
+}
+
+#[test]
 fn test_serialize_strong() {
     let result = parse_and_serialize("This is **strong** text.");
     assert_eq!(result, "This is **strong** text.\n");
@@ -787,10 +802,11 @@ fn test_serialize_shortcut_reference_when_text_matches_label() {
 
 #[test]
 fn test_serialize_escaped_asterisk_in_emphasis() {
-    // Escaped asterisks inside emphasis should be preserved
+    // When emphasis contains an asterisk, use underscore delimiter
+    // This avoids needing to escape the asterisk
     let input = r"*\*.ts*";
     let result = parse_and_serialize(input);
-    assert_eq!(result, "*\\*.ts*\n");
+    assert_eq!(result, "_\\*.ts_\n");
 }
 
 #[test]

@@ -2,7 +2,7 @@
 
 use indexmap::IndexMap;
 
-use comrak::nodes::{AstNode, ListType};
+use comrak::nodes::{AstNode, ListType, NodeValue};
 
 use crate::Options;
 
@@ -255,29 +255,51 @@ impl<'a> Serializer<'a> {
         url.starts_with("http://") || url.starts_with("https://")
     }
 
-    /// Get the emphasis delimiter character used in the original source.
-    /// Returns '_' or '*' based on what was used in the source.
-    /// Defaults to '*' if source is not available.
+    /// Get the emphasis delimiter character.
+    /// Uses '_' if the content contains '*' (to avoid escaping).
+    /// Otherwise, preserves the original delimiter from source, defaulting to '*'.
     pub fn get_emphasis_delimiter<'b>(&self, node: &'b AstNode<'b>) -> char {
-        if let Some(source) = self.extract_source(node) {
-            // The source for an emphasis node starts with the delimiter
-            if source.starts_with('_') {
-                return '_';
-            }
+        // If content contains '*', use '_' to avoid escaping
+        if self.node_text_contains_char(node, '*') {
+            return '_';
+        }
+        // Otherwise, preserve original delimiter or default to '*'
+        if let Some(source) = self.extract_source(node)
+            && source.starts_with('_')
+        {
+            return '_';
         }
         '*'
     }
 
-    /// Get the strong emphasis delimiter string used in the original source.
-    /// Returns "__" or "**" based on what was used in the source.
-    /// Defaults to "**" if source is not available.
+    /// Get the strong emphasis delimiter string.
+    /// Uses "__" if the content contains '*' (to avoid escaping).
+    /// Otherwise, preserves the original delimiter from source, defaulting to "**".
     pub fn get_strong_delimiter<'b>(&self, node: &'b AstNode<'b>) -> &'static str {
-        if let Some(source) = self.extract_source(node) {
-            // The source for a strong emphasis node starts with the delimiter
-            if source.starts_with("__") {
-                return "__";
-            }
+        // If content contains '*', use '__' to avoid escaping
+        if self.node_text_contains_char(node, '*') {
+            return "__";
+        }
+        // Otherwise, preserve original delimiter or default to '**'
+        if let Some(source) = self.extract_source(node)
+            && source.starts_with("__")
+        {
+            return "__";
         }
         "**"
+    }
+
+    /// Check if any text node within the given node contains the specified character.
+    fn node_text_contains_char<'b>(&self, node: &'b AstNode<'b>, ch: char) -> bool {
+        self.node_text_contains_char_recursive(node, ch)
+    }
+
+    fn node_text_contains_char_recursive<'b>(&self, node: &'b AstNode<'b>, ch: char) -> bool {
+        match &node.data.borrow().value {
+            NodeValue::Text(t) => t.contains(ch),
+            _ => node
+                .children()
+                .any(|child| self.node_text_contains_char_recursive(child, ch)),
+        }
     }
 }
