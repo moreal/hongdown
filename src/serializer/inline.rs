@@ -81,11 +81,13 @@ impl<'a> Serializer<'a> {
                     // In headings, we typically want reference style for external links
                     let link_text = self.collect_raw_text(node);
                     if Self::is_external_url(&link.url) {
+                        // Headings don't have footnote references as siblings, so no need for collapsed style
                         self.format_external_link_as_reference(
                             text,
                             &link_text,
                             &link.url,
                             &link.title,
+                            false,
                         );
                     } else {
                         Self::format_inline_link(text, &link_text, &link.url, &link.title);
@@ -213,11 +215,14 @@ impl<'a> Serializer<'a> {
                     for child in node.children() {
                         self.collect_inline_node(child, &mut link_text);
                     }
+                    // Check if next sibling starts with '[' to decide if we need collapsed style
+                    let use_collapsed = Self::next_sibling_starts_with_bracket(node);
                     self.format_external_link_as_reference(
                         content,
                         &link_text,
                         &link.url,
                         &link.title,
+                        use_collapsed,
                     );
                 } else {
                     // Relative/local URL: keep as inline link

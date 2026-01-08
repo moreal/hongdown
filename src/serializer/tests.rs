@@ -2115,3 +2115,19 @@ fn test_code_block_custom_default_language() {
         "Code block without language should use default_language option"
     );
 }
+
+#[test]
+fn test_shortcut_link_followed_by_footnote() {
+    // When an inline link is immediately followed by a footnote reference,
+    // formatting converts the inline link to a reference-style link.
+    // If we use shortcut style [link], the output [link][^1] is ambiguous -
+    // it could be parsed as a full reference link with label "^1".
+    // Use collapsed reference [link][] to disambiguate.
+    let input = "See [example](https://example.com)[^1] for details.\n\n[^1]: Footnote.";
+    let result = parse_and_serialize_with_source(input);
+    assert!(
+        result.contains("[example][][^1]"),
+        "Shortcut link followed by footnote needs empty brackets for disambiguation, got:\n{}",
+        result
+    );
+}

@@ -63,20 +63,42 @@ impl<'a> Serializer<'a> {
     }
 
     /// Format an external link as reference style and write to output buffer.
+    ///
+    /// If `use_collapsed` is true, outputs `[text][]` (collapsed reference) instead of
+    /// `[text]` (shortcut reference). This is needed to disambiguate when the link is
+    /// immediately followed by something that starts with `[`, like a footnote reference.
     pub(super) fn format_external_link_as_reference(
         &mut self,
         output: &mut String,
         text: &str,
         url: &str,
         title: &str,
+        use_collapsed: bool,
     ) {
         // Normalize: replace SoftBreak markers with spaces for shortcut refs
         let normalized_text = text.replace('\x00', " ");
         output.push('[');
         output.push_str(&normalized_text);
         output.push(']');
+        if use_collapsed {
+            output.push_str("[]");
+        }
 
         self.add_reference(normalized_text, url.to_string(), title.to_string());
+    }
+
+    /// Check if the next sibling of a node starts with `[`.
+    /// This includes footnote references, link references, and images.
+    pub(super) fn next_sibling_starts_with_bracket<'b>(node: &'b AstNode<'b>) -> bool {
+        if let Some(next) = node.next_sibling() {
+            let value = &next.data.borrow().value;
+            matches!(
+                value,
+                NodeValue::FootnoteReference(_) | NodeValue::Link(_) | NodeValue::Image(_)
+            )
+        } else {
+            false
+        }
     }
 
     /// Format a reference-style image and write to output buffer.
@@ -178,7 +200,14 @@ impl<'a> Serializer<'a> {
         } else if Self::is_external_url(url) {
             let link_text = self.collect_text(node);
             let mut output = String::new();
-            self.format_external_link_as_reference(&mut output, &link_text, url, title);
+            let use_collapsed = Self::next_sibling_starts_with_bracket(node);
+            self.format_external_link_as_reference(
+                &mut output,
+                &link_text,
+                url,
+                title,
+                use_collapsed,
+            );
             self.output.push_str(&output);
         } else {
             // Relative/local URL: keep as inline link

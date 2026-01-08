@@ -9,7 +9,7 @@ Philosophy
 
 The core principle of this style is:
 
-> **Markdown should be readable as plain text, not just after rendering.**
+> *Markdown should be readable as plain text, not just after rendering.*
 
 A well-formatted Markdown document should convey its structure and emphasis
 clearly even when viewed in a plain text editor without any rendering.
@@ -261,6 +261,24 @@ See [GitHub] for the source code.
 
 [GitHub]: https://github.com/example/repo
 ~~~~
+
+### Collapsed references before brackets
+
+When a shortcut reference would be immediately followed by text starting with
+`[` (such as a footnote reference), use collapsed reference syntax `[text][]`
+instead of shortcut syntax `[text]` to avoid ambiguity:
+
+~~~~ markdown
+See [GitHub][][^1] for details.
+
+[GitHub]: https://github.com/example/repo
+
+[^1]: Footnote text.
+~~~~
+
+*Rationale*: Without the empty brackets, `[GitHub][^1]` could be parsed as a
+full reference link with label `^1`, which would break the intended link and
+footnote.
 
 
 Block quotes and alerts
