@@ -4,7 +4,7 @@ use comrak::nodes::{AstNode, NodeValue};
 use regex::Regex;
 
 use super::Serializer;
-use super::state::Directive;
+use super::state::{Directive, FormatSkipMode};
 use super::wrap;
 
 impl<'a> Serializer<'a> {
@@ -62,7 +62,7 @@ impl<'a> Serializer<'a> {
                         return;
                     }
                     Directive::DisableNextLine => {
-                        self.skip_next_block = true;
+                        self.skip_mode = FormatSkipMode::NextBlock;
                         // Output the directive comment
                         if i > 0 {
                             self.output.push('\n');
@@ -71,7 +71,7 @@ impl<'a> Serializer<'a> {
                         continue;
                     }
                     Directive::DisableNextSection => {
-                        self.skip_until_section = true;
+                        self.skip_mode = FormatSkipMode::UntilSection;
                         // Output the directive comment
                         if i > 0 {
                             self.output.push('\n');
@@ -80,7 +80,7 @@ impl<'a> Serializer<'a> {
                         continue;
                     }
                     Directive::Disable => {
-                        self.formatting_disabled = true;
+                        self.skip_mode = FormatSkipMode::Disabled;
                         // Output the directive comment
                         if i > 0 {
                             self.output.push('\n');
@@ -89,7 +89,7 @@ impl<'a> Serializer<'a> {
                         continue;
                     }
                     Directive::Enable => {
-                        self.formatting_disabled = false;
+                        self.skip_mode = FormatSkipMode::None;
                         // Output the directive comment
                         if i > 0 {
                             self.output.push('\n');
@@ -144,18 +144,18 @@ impl<'a> Serializer<'a> {
 
             // Check if this block should be output as-is (skip formatting)
             if self.should_skip_formatting() {
-                // For skip_next_block, reset the flag after this block
-                let was_skip_next_block = self.skip_next_block;
-                if was_skip_next_block {
-                    self.skip_next_block = false;
+                // For NextBlock mode, reset after this block
+                let was_next_block = self.skip_mode == FormatSkipMode::NextBlock;
+                if was_next_block {
+                    self.skip_mode = FormatSkipMode::None;
                 }
 
-                // For skip_until_section, check if this is a heading to reset
-                if self.skip_until_section
+                // For UntilSection mode, check if this is a heading to reset
+                if self.skip_mode == FormatSkipMode::UntilSection
                     && let NodeValue::Heading(h) = &child.data.borrow().value
                     && h.level <= 2
                 {
-                    self.skip_until_section = false;
+                    self.skip_mode = FormatSkipMode::None;
                     // Continue with normal formatting for this heading
                     self.serialize_node(child);
                     continue;

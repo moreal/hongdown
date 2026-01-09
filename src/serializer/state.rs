@@ -6,6 +6,26 @@ use comrak::nodes::{AstNode, ListType, NodeValue};
 
 use crate::Options;
 
+/// The current formatting skip mode.
+///
+/// Controls whether and how formatting should be skipped for content.
+/// Only one mode can be active at a time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FormatSkipMode {
+    /// Normal formatting is active.
+    #[default]
+    None,
+    /// Skip formatting for the next block element only.
+    /// Automatically resets to `None` after the block is processed.
+    NextBlock,
+    /// Skip formatting until the next section heading (h2 or lower).
+    /// Automatically resets to `None` when a heading is encountered.
+    UntilSection,
+    /// Formatting is disabled (by `hongdown-disable` directive).
+    /// Remains active until `hongdown-enable` directive is encountered.
+    Disabled,
+}
+
 /// Formatting directives that can be embedded in HTML comments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Directive {
@@ -129,12 +149,8 @@ pub struct Serializer<'a> {
     pub footnote_reference_lines: std::collections::HashMap<String, usize>,
     /// Current list nesting depth (0 = not in list, 1 = top-level, 2+ = nested)
     pub list_depth: usize,
-    /// Formatting is disabled (by `hongdown-disable` or `hongdown-disable-file`)
-    pub formatting_disabled: bool,
-    /// Skip formatting for the next block element only
-    pub skip_next_block: bool,
-    /// Skip formatting until the next section heading
-    pub skip_until_section: bool,
+    /// Current formatting skip mode
+    pub skip_mode: FormatSkipMode,
     /// Whether we're inside a description details block (for indentation)
     pub in_description_details: bool,
     /// Warnings generated during formatting
@@ -184,9 +200,7 @@ impl<'a> Serializer<'a> {
             emitted_footnotes: std::collections::HashSet::new(),
             footnote_reference_lines: std::collections::HashMap::new(),
             list_depth: 0,
-            formatting_disabled: false,
-            skip_next_block: false,
-            skip_until_section: false,
+            skip_mode: FormatSkipMode::None,
             in_description_details: false,
             warnings: Vec::new(),
             ordered_list_max_items: 0,
@@ -281,7 +295,7 @@ impl<'a> Serializer<'a> {
 
     /// Check if formatting should be skipped for this node.
     pub fn should_skip_formatting(&self) -> bool {
-        self.formatting_disabled || self.skip_next_block || self.skip_until_section
+        self.skip_mode != FormatSkipMode::None
     }
 
     /// Add a reference link to the pending references.
