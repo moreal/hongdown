@@ -113,6 +113,8 @@ pub struct Serializer<'a> {
     pub list_tight: bool,
     /// Whether we're inside a block quote
     pub in_block_quote: bool,
+    /// Accumulated blockquote prefix for nested blockquotes (e.g., "> " or "> > ")
+    pub blockquote_prefix: String,
     /// Reference links collected for the current section
     /// Key: label, Value: ReferenceLink (insertion order preserved)
     pub pending_references: IndexMap<String, ReferenceLink>,
@@ -166,6 +168,7 @@ impl<'a> Serializer<'a> {
             list_type: None,
             list_tight: true,
             in_block_quote: false,
+            blockquote_prefix: String::new(),
             pending_references: IndexMap::new(),
             emitted_references: std::collections::HashSet::new(),
             pending_footnotes: IndexMap::new(),

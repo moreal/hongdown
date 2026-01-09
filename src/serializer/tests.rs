@@ -2408,3 +2408,65 @@ fn test_definition_list_in_alert_with_multiple_items() {
         result
     );
 }
+
+#[test]
+fn test_nested_blockquote_preserved() {
+    // Nested blockquotes should preserve their nesting level
+    let input = "> Outer\n>\n> > Inner";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("> > Inner") || result.contains(">> Inner"),
+        "Nested blockquote should preserve double > prefix. Got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_nested_blockquote_with_alert() {
+    // Alert nested inside blockquote should preserve both levels
+    let input = r#"> Outer blockquote:
+>
+> > [!TIP]
+> > This is a tip inside nested blockquote."#;
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("> > [!TIP]") || result.contains(">> [!TIP]"),
+        "Alert inside blockquote should preserve double > prefix. Got:\n{}",
+        result
+    );
+    assert!(
+        result.contains("> > This is a tip") || result.contains(">> This is a tip"),
+        "Alert content should preserve double > prefix. Got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_nested_blockquote_with_definition_list() {
+    // Definition list inside nested blockquote should preserve all levels
+    let input = r#"> Here's a blockquote inside another blockquote:
+>
+> > [!TIP]
+> > It takes several kinds of objects:
+> >
+> > `Actor`
+> > :   The actor to follow.
+> >
+> > `URL`
+> > :   The URI of the actor."#;
+    let result = parse_and_serialize(input);
+
+    // Should not flatten to single >
+    assert!(
+        !result.contains("\n> `Actor`\n> :"),
+        "Definition list should not lose outer blockquote prefix. Got:\n{}",
+        result
+    );
+
+    // Should preserve double > on blank lines between items
+    assert!(
+        result.contains("> >\n> > `URL`") || result.contains("> >\n> >\n> > `URL`"),
+        "Blank lines between items should have double > prefix. Got:\n{}",
+        result
+    );
+}

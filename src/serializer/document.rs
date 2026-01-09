@@ -248,7 +248,7 @@ impl<'a> Serializer<'a> {
 
         // Determine the prefix for blockquote context
         let blockquote_prefix = if self.in_block_quote {
-            format!("{}> ", self.blockquote_outer_indent)
+            format!("{}{}", self.blockquote_outer_indent, self.blockquote_prefix)
         } else {
             String::new()
         };
@@ -428,7 +428,10 @@ impl<'a> Serializer<'a> {
                 // Inside a blockquote, continuation lines need > prefix + indent
                 // Use blockquote_outer_indent (the outer list's indent, if any)
                 // rather than list_item_indent (which is for the list inside the blockquote)
-                format!("{}> {}", self.blockquote_outer_indent, base_indent)
+                format!(
+                    "{}{}{}",
+                    self.blockquote_outer_indent, self.blockquote_prefix, base_indent
+                )
             } else {
                 base_indent
             };
@@ -442,7 +445,7 @@ impl<'a> Serializer<'a> {
         } else {
             // Not in a list - wrap the paragraph at line_width
             let prefix = if self.in_block_quote {
-                format!("{}> ", self.blockquote_outer_indent)
+                format!("{}{}", self.blockquote_outer_indent, self.blockquote_prefix)
             } else {
                 String::new()
             };

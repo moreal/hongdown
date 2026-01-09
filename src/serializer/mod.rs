@@ -401,7 +401,9 @@ impl<'a> Serializer<'a> {
                         // to keep items within the same blockquote
                         if self.in_block_quote {
                             self.output.push_str(&self.list_item_indent);
-                            self.output.push_str(">\n");
+                            // Use blockquote_prefix without trailing space for blank lines
+                            self.output.push_str(self.blockquote_prefix.trim_end());
+                            self.output.push('\n');
                         } else {
                             self.output.push('\n');
                         }
