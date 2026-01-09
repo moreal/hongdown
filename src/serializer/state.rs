@@ -70,6 +70,35 @@ pub struct Warning {
     pub message: String,
 }
 
+/// Safely slice a string, ensuring the indices are valid UTF-8 boundaries.
+/// If the indices are not valid boundaries, adjusts to the nearest valid boundary.
+fn safe_str_slice(s: &str, start: usize, end: usize) -> &str {
+    let safe_start = if start >= s.len() {
+        s.len()
+    } else if s.is_char_boundary(start) {
+        start
+    } else {
+        // Find the previous valid boundary
+        (0..start)
+            .rev()
+            .find(|&i| s.is_char_boundary(i))
+            .unwrap_or(0)
+    };
+
+    let safe_end = if end >= s.len() {
+        s.len()
+    } else if s.is_char_boundary(end) {
+        end
+    } else {
+        // Find the next valid boundary
+        (end..=s.len())
+            .find(|&i| s.is_char_boundary(i))
+            .unwrap_or(s.len())
+    };
+
+    &s[safe_start..safe_end]
+}
+
 /// The main serializer state for converting comrak AST to formatted Markdown.
 pub struct Serializer<'a> {
     pub output: String,
@@ -194,19 +223,15 @@ impl<'a> Serializer<'a> {
                 // Single line: extract from start_col to end_col
                 let start_byte = start_col.saturating_sub(1);
                 let end_byte = end_col;
-                if end_byte <= line.len() {
-                    result.push_str(&line[start_byte..end_byte]);
-                } else {
-                    result.push_str(&line[start_byte..]);
-                }
+                result.push_str(safe_str_slice(line, start_byte, end_byte));
             } else if i == start_idx {
                 // First line: from start_col to end
                 let start_byte = start_col.saturating_sub(1);
-                result.push_str(&line[start_byte..]);
+                result.push_str(safe_str_slice(line, start_byte, line.len()));
             } else if i == end_idx {
                 // Last line: from start to end_col
                 let end_byte = end_col.min(line.len());
-                result.push_str(&line[..end_byte]);
+                result.push_str(safe_str_slice(line, 0, end_byte));
             } else {
                 // Middle lines: full line
                 result.push_str(line);
@@ -301,5 +326,77 @@ impl<'a> Serializer<'a> {
                 .children()
                 .any(|child| self.node_text_contains_char_recursive(child, ch)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::safe_str_slice;
+
+    #[test]
+    fn test_safe_str_slice_ascii() {
+        let s = "hello world";
+        assert_eq!(safe_str_slice(s, 0, 5), "hello");
+        assert_eq!(safe_str_slice(s, 6, 11), "world");
+        assert_eq!(safe_str_slice(s, 0, 11), "hello world");
+    }
+
+    #[test]
+    fn test_safe_str_slice_valid_utf8_boundaries() {
+        // ✅ is 3 bytes: [226, 156, 133]
+        let s = "✅ test";
+        assert_eq!(safe_str_slice(s, 0, 3), "✅");
+        assert_eq!(safe_str_slice(s, 4, 8), "test");
+        assert_eq!(safe_str_slice(s, 0, 8), "✅ test");
+    }
+
+    #[test]
+    fn test_safe_str_slice_invalid_start_boundary() {
+        // ✅ is 3 bytes: [226, 156, 133]
+        let s = "✅ test";
+        // Start at byte 1 (middle of ✅) should adjust to byte 0
+        assert_eq!(safe_str_slice(s, 1, 8), "✅ test");
+        // Start at byte 2 (middle of ✅) should adjust to byte 0
+        assert_eq!(safe_str_slice(s, 2, 8), "✅ test");
+    }
+
+    #[test]
+    fn test_safe_str_slice_invalid_end_boundary() {
+        // ✅ is 3 bytes: [226, 156, 133]
+        let s = "✅ test";
+        // End at byte 1 (middle of ✅) should adjust to byte 3
+        assert_eq!(safe_str_slice(s, 0, 1), "✅");
+        // End at byte 2 (middle of ✅) should adjust to byte 3
+        assert_eq!(safe_str_slice(s, 0, 2), "✅");
+    }
+
+    #[test]
+    fn test_safe_str_slice_out_of_bounds() {
+        let s = "hello";
+        // End beyond string length
+        assert_eq!(safe_str_slice(s, 0, 100), "hello");
+        // Start beyond string length
+        assert_eq!(safe_str_slice(s, 100, 200), "");
+    }
+
+    #[test]
+    fn test_safe_str_slice_multiple_emoji() {
+        // 🚨 is 4 bytes, ✅ is 3 bytes
+        let s = "🚨 ✅";
+        assert_eq!(safe_str_slice(s, 0, 4), "🚨");
+        assert_eq!(safe_str_slice(s, 5, 8), "✅");
+        // Invalid boundary in middle of 🚨
+        assert_eq!(safe_str_slice(s, 1, 8), "🚨 ✅");
+        assert_eq!(safe_str_slice(s, 2, 8), "🚨 ✅");
+        assert_eq!(safe_str_slice(s, 3, 8), "🚨 ✅");
+    }
+
+    #[test]
+    fn test_safe_str_slice_emoji_only() {
+        // When the string is just an emoji and we try to slice at byte 1
+        let s = "✅";
+        // This was the exact case causing the panic: byte index 1 in a 3-byte emoji
+        assert_eq!(safe_str_slice(s, 1, 3), "✅");
+        assert_eq!(safe_str_slice(s, 0, 1), "✅");
     }
 }
