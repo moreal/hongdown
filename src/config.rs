@@ -29,7 +29,7 @@ pub struct Config {
     pub heading: HeadingConfig,
 
     /// Unordered list formatting options.
-    pub list: ListConfig,
+    pub unordered_list: UnorderedListConfig,
 
     /// Ordered list formatting options.
     pub ordered_list: OrderedListConfig,
@@ -45,7 +45,7 @@ impl Default for Config {
             include: Vec::new(),
             exclude: Vec::new(),
             heading: HeadingConfig::default(),
-            list: ListConfig::default(),
+            unordered_list: UnorderedListConfig::default(),
             ordered_list: OrderedListConfig::default(),
             code_block: CodeBlockConfig::default(),
         }
@@ -75,7 +75,7 @@ impl Default for HeadingConfig {
 /// Unordered list formatting options.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(default)]
-pub struct ListConfig {
+pub struct UnorderedListConfig {
     /// Marker character: `-`, `*`, or `+` (default: `-`).
     pub unordered_marker: char,
 
@@ -89,7 +89,7 @@ pub struct ListConfig {
     pub indent_width: usize,
 }
 
-impl Default for ListConfig {
+impl Default for UnorderedListConfig {
     fn default() -> Self {
         Self {
             unordered_marker: '-',
@@ -317,10 +317,10 @@ mod tests {
         assert_eq!(config.line_width, 80);
         assert!(config.heading.setext_h1);
         assert!(config.heading.setext_h2);
-        assert_eq!(config.list.unordered_marker, '-');
-        assert_eq!(config.list.leading_spaces, 1);
-        assert_eq!(config.list.trailing_spaces, 2);
-        assert_eq!(config.list.indent_width, 4);
+        assert_eq!(config.unordered_list.unordered_marker, '-');
+        assert_eq!(config.unordered_list.leading_spaces, 1);
+        assert_eq!(config.unordered_list.trailing_spaces, 2);
+        assert_eq!(config.unordered_list.indent_width, 4);
         assert_eq!(config.ordered_list.odd_level_marker, '.');
         assert_eq!(config.ordered_list.even_level_marker, ')');
         assert_eq!(config.ordered_list.pad, OrderedListPad::Start);
@@ -358,10 +358,10 @@ setext_h2 = false
     }
 
     #[test]
-    fn test_parse_list_config() {
+    fn test_parse_unordered_list_config() {
         let config = Config::from_toml(
             r#"
-[list]
+[unordered_list]
 unordered_marker = "*"
 leading_spaces = 0
 trailing_spaces = 1
@@ -369,10 +369,10 @@ indent_width = 2
 "#,
         )
         .unwrap();
-        assert_eq!(config.list.unordered_marker, '*');
-        assert_eq!(config.list.leading_spaces, 0);
-        assert_eq!(config.list.trailing_spaces, 1);
-        assert_eq!(config.list.indent_width, 2);
+        assert_eq!(config.unordered_list.unordered_marker, '*');
+        assert_eq!(config.unordered_list.leading_spaces, 0);
+        assert_eq!(config.unordered_list.trailing_spaces, 1);
+        assert_eq!(config.unordered_list.indent_width, 2);
     }
 
     #[test]
@@ -453,7 +453,7 @@ line_width = 80
 setext_h1 = true
 setext_h2 = true
 
-[list]
+[unordered_list]
 unordered_marker = "-"
 leading_spaces = 1
 trailing_spaces = 2

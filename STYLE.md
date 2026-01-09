@@ -149,14 +149,30 @@ Indent nested items by 4 spaces:
 Use `.` for odd nesting levels and `)` for even nesting levels:
 
 ~~~~ markdown
- 1.  First item
- 2.  Second item
-     1)  Nested first
-     2)  Nested second
- 3.  Third item
+1.  First item
+2.  Second item
+    1)  Nested first
+    2)  Nested second
+3.  Third item
 ~~~~
 
 *Rationale*: Alternating markers make the nesting level visually apparent.
+
+### Fixed marker width
+
+Ordered list markers maintain a fixed 4-character width.  When numbers grow
+longer, trailing spaces are reduced (minimum 1 space):
+
+~~~~ markdown
+1.  First item
+2.  Second item
+...
+9.  Ninth item
+10. Tenth item
+~~~~
+
+*Rationale*: Consistent marker width keeps continuation lines aligned at
+the same column regardless of item count.
 
 ### Continuation lines
 

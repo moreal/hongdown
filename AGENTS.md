@@ -122,11 +122,11 @@ Development practices
 This project strictly follows test-driven development (TDD) practices.
 All new code must be developed using the TDD cycle:
 
- 1.  *Red*: Write a failing test that describes the expected behavior.
+1.  *Red*: Write a failing test that describes the expected behavior.
     Run the test to confirm it fails.
- 2.  *Green*: Write the minimum code necessary to make the test pass.
+2.  *Green*: Write the minimum code necessary to make the test pass.
     Run the test to confirm it passes.
- 3.  *Refactor*: Improve the code while keeping all tests passing.
+3.  *Refactor*: Improve the code while keeping all tests passing.
     Run tests after each refactoring step.
 
 Additional TDD guidelines:
@@ -311,9 +311,9 @@ clippy lints (no *clippy.toml*).  Run `cargo fmt` to format code.
 
 Organize imports in this order, with blank lines between groups:
 
- 1.  Standard library (`use std::...`)
- 2.  External crates (`use clap::...`, `use comrak::...`)
- 3.  Internal modules (`use super::...`, `use crate::...`)
+1.  Standard library (`use std::...`)
+2.  External crates (`use clap::...`, `use comrak::...`)
+3.  Internal modules (`use super::...`, `use crate::...`)
 
 ~~~~ rust
 use std::fs;

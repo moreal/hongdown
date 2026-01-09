@@ -2,8 +2,6 @@
 
 use comrak::nodes::{AstNode, ListType, NodeValue};
 
-use crate::config::OrderedListPad;
-
 use super::Serializer;
 
 impl<'a> Serializer<'a> {
@@ -23,9 +21,9 @@ impl<'a> Serializer<'a> {
                 self.options.leading_spaces + 1 + self.options.trailing_spaces
             }
             Some(ListType::Ordered) => {
-                // " N.  " = leading_spaces + number_width + 1 (marker) + trailing_spaces
-                let max_num_width = self.ordered_list_max_items.to_string().len();
-                self.options.leading_spaces + max_num_width + 1 + self.options.trailing_spaces
+                // Fixed width based on ordered_list_indent_width (default 4)
+                // e.g., "1.  " (4), "10. " (4), "100." (4, min 1 trailing space)
+                self.options.ordered_list_indent_width
             }
             None => 0,
         }
@@ -136,54 +134,18 @@ impl<'a> Serializer<'a> {
                     self.options.even_level_marker
                 };
 
-                // Calculate padding for number alignment
-                let max_num_width = self.ordered_list_max_items.to_string().len();
                 let current_num = self.list_item_index.to_string();
                 let current_num_width = current_num.len();
-                let padding_spaces = max_num_width.saturating_sub(current_num_width);
 
-                let base_leading = " ".repeat(self.options.leading_spaces);
-                let base_trailing = " ".repeat(self.options.trailing_spaces);
+                // Calculate trailing spaces to maintain fixed marker width
+                // marker_width = number + marker_char + trailing
+                // trailing = marker_width - number - 1 (minimum 1)
+                let marker_width = self.options.ordered_list_indent_width;
+                let trailing_count = marker_width.saturating_sub(current_num_width + 1).max(1);
 
-                if self.in_description_details && self.list_depth == 1 {
-                    // Inside description details at top level: no leading space
-                    match self.options.ordered_list_pad {
-                        OrderedListPad::Start => {
-                            // Pad before number: "  1. "
-                            self.output.push_str(&" ".repeat(padding_spaces));
-                            self.output.push_str(&current_num);
-                            self.output.push(marker);
-                            self.output.push_str(&base_trailing);
-                        }
-                        OrderedListPad::End => {
-                            // Pad after marker: "1.   "
-                            self.output.push_str(&current_num);
-                            self.output.push(marker);
-                            self.output.push_str(&base_trailing);
-                            self.output.push_str(&" ".repeat(padding_spaces));
-                        }
-                    }
-                } else {
-                    // All other cases: " N. " format (leading spaces + number + marker)
-                    match self.options.ordered_list_pad {
-                        OrderedListPad::Start => {
-                            // Pad before number: "   1. "
-                            self.output.push_str(&base_leading);
-                            self.output.push_str(&" ".repeat(padding_spaces));
-                            self.output.push_str(&current_num);
-                            self.output.push(marker);
-                            self.output.push_str(&base_trailing);
-                        }
-                        OrderedListPad::End => {
-                            // Pad after marker: " 1.   "
-                            self.output.push_str(&base_leading);
-                            self.output.push_str(&current_num);
-                            self.output.push(marker);
-                            self.output.push_str(&base_trailing);
-                            self.output.push_str(&" ".repeat(padding_spaces));
-                        }
-                    }
-                }
+                self.output.push_str(&current_num);
+                self.output.push(marker);
+                self.output.push_str(&" ".repeat(trailing_count));
             }
             None => {}
         }
