@@ -2835,3 +2835,32 @@ fn test_hard_line_break_in_blockquote_with_emphasis() {
         "Hard line break with emphasis should preserve > prefix"
     );
 }
+
+#[test]
+fn test_multiline_code_span_in_list_item() {
+    // Code spans that span multiple lines in the source should be normalized
+    // to a single line with spaces (per CommonMark spec: newlines in code spans
+    // become spaces). The wrapping logic should not break inside code spans.
+    let input = " -  Changed the type of `TextFormatterOptions.value` to `(value: unknown,
+       inspect: (value: unknown, options?: { colors?: boolean }) => string)
+       => string` (was `(value: unknown) => string`).";
+    let result = parse_and_serialize_with_source(input);
+    // The code span should not be broken apart - it should be kept intact
+    // (either on one line or properly wrapped without breaking inside)
+    assert!(
+        !result.contains("i        nspect"),
+        "Code span should not be broken with extra spaces inside.\nGot:\n{}",
+        result
+    );
+    assert!(
+        !result.contains("=        >"),
+        "Code span should not be broken with extra spaces inside.\nGot:\n{}",
+        result
+    );
+    // The code span content should be present (newlines converted to spaces)
+    assert!(
+        result.contains("(value: unknown, inspect:"),
+        "Code span should have newlines converted to spaces.\nGot:\n{}",
+        result
+    );
+}

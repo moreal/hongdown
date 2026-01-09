@@ -49,8 +49,10 @@ impl<'a> Serializer<'a> {
                 // Try to use original source to preserve spacing, but validate it first.
                 // comrak may provide incorrect sourcepos for code spans in table cells
                 // containing escaped pipe characters (e.g., `string \| number`).
+                // Also, multiline code spans in source need to be normalized (CommonMark
+                // converts newlines in code spans to spaces).
                 if let Some(source) = self.extract_source(node) {
-                    if escape::is_valid_code_span(&source) {
+                    if escape::is_valid_code_span(&source) && !source.contains('\n') {
                         text.push_str(&source);
                     } else {
                         text.push_str(&escape::format_code_span(&code.literal));
@@ -161,8 +163,10 @@ impl<'a> Serializer<'a> {
                 // Try to use original source to preserve spacing, but validate it first.
                 // comrak may provide incorrect sourcepos for code spans in table cells
                 // containing escaped pipe characters (e.g., `string \| number`).
+                // Also, multiline code spans in source need to be normalized (CommonMark
+                // converts newlines in code spans to spaces).
                 if let Some(source) = self.extract_source(node) {
-                    if escape::is_valid_code_span(&source) {
+                    if escape::is_valid_code_span(&source) && !source.contains('\n') {
                         content.push_str(&source);
                     } else {
                         content.push_str(&escape::format_code_span(&code.literal));
