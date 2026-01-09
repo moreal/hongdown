@@ -2635,3 +2635,29 @@ fn test_mixed_html_and_entities() {
     let result = parse_and_serialize_with_source(input);
     assert_eq!(result, "Use <code>&lt;div&gt;</code> for containers.\n");
 }
+
+#[test]
+fn test_footnote_definitions_before_reference_definitions() {
+    // When a section has both footnote definitions and link reference definitions,
+    // footnote definitions should come before link reference definitions.
+    let input = r#"Section
+-------
+
+See [example] and footnote[^1].
+
+[example]: https://example.com
+[^1]: Footnote content.
+"#;
+    let result = parse_and_serialize(input);
+
+    // Find positions
+    let footnote_pos = result.find("[^1]:").expect("footnote not found");
+    let reference_pos = result.find("[example]:").expect("reference not found");
+
+    // Footnote should come before reference
+    assert!(
+        footnote_pos < reference_pos,
+        "Footnote definition should come before link reference definition.\nGot:\n{}",
+        result
+    );
+}

@@ -112,8 +112,9 @@ impl<'a> Serializer<'a> {
             if is_h2_or_h3 && i > 0 {
                 // Get the source line of the heading to flush only earlier footnotes
                 let heading_line = child.data.borrow().sourcepos.start.line;
-                self.flush_references();
+                // Footnotes come before link reference definitions
                 self.flush_footnotes_before(Some(heading_line));
+                self.flush_references();
                 self.flush_footnote_references_before(Some(heading_line));
             }
 
@@ -173,8 +174,9 @@ impl<'a> Serializer<'a> {
             self.serialize_node(child);
         }
 
-        self.flush_references();
+        // Footnotes come before link reference definitions
         self.flush_footnotes();
+        self.flush_references();
         self.flush_footnote_references();
 
         // Output trailing HTML blocks after references and footnotes
