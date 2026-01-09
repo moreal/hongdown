@@ -5,7 +5,37 @@
 /// This function handles soft break markers (`\x00`) which represent where
 /// the original document had line breaks. Short lines are preserved as-is,
 /// while long lines are merged and rewrapped.
+///
+/// Hard line breaks (`\n`) are preserved with two trailing spaces before the
+/// newline, and the prefix is added to the continuation line.
 pub fn wrap_text(text: &str, prefix: &str, line_width: usize) -> String {
+    // First, split by hard line breaks (actual newlines)
+    // These must be preserved with two trailing spaces
+    let hard_break_segments: Vec<&str> = text.split('\n').collect();
+
+    if hard_break_segments.len() == 1 {
+        // No hard line breaks, process normally with soft breaks
+        return wrap_text_segment(text, prefix, line_width);
+    }
+
+    // Process each segment separated by hard line breaks
+    let mut result = String::new();
+    for (idx, segment) in hard_break_segments.iter().enumerate() {
+        if idx > 0 {
+            // Add two trailing spaces for hard line break, then newline and prefix
+            result.push_str("  \n");
+        }
+        // First segment uses the normal prefix, subsequent segments also need prefix
+        // (wrap_text_segment handles adding the prefix to the first line)
+        let wrapped = wrap_text_segment(segment, prefix, line_width);
+        result.push_str(&wrapped);
+    }
+
+    result
+}
+
+/// Wrap a single segment of text (between hard line breaks).
+fn wrap_text_segment(text: &str, prefix: &str, line_width: usize) -> String {
     // Split by soft break markers (original line breaks)
     // \x00 represents where the original document had line breaks
     let original_lines: Vec<&str> = text.split('\x00').collect();
@@ -60,7 +90,49 @@ pub fn wrap_text(text: &str, prefix: &str, line_width: usize) -> String {
 ///
 /// This is used for list items where the marker is already output and continuation
 /// lines need indentation.
+///
+/// Hard line breaks (`\n`) are preserved with two trailing spaces before the
+/// newline, and the continuation prefix is added to the continuation line.
 pub fn wrap_text_first_line(
+    text: &str,
+    first_prefix: &str,
+    continuation_prefix: &str,
+    line_width: usize,
+) -> String {
+    // First, split by hard line breaks (actual newlines)
+    // These must be preserved with two trailing spaces
+    let hard_break_segments: Vec<&str> = text.split('\n').collect();
+
+    if hard_break_segments.len() == 1 {
+        // No hard line breaks, process normally with soft breaks
+        return wrap_text_first_line_segment(text, first_prefix, continuation_prefix, line_width);
+    }
+
+    // Process each segment separated by hard line breaks
+    let mut result = String::new();
+    let mut is_first_segment = true;
+    for segment in hard_break_segments {
+        if !is_first_segment {
+            // Add two trailing spaces for hard line break, then newline
+            result.push_str("  \n");
+            result.push_str(continuation_prefix);
+        }
+        let (current_first, current_cont) = if is_first_segment {
+            (first_prefix, continuation_prefix)
+        } else {
+            ("", continuation_prefix)
+        };
+        let wrapped =
+            wrap_text_first_line_segment(segment, current_first, current_cont, line_width);
+        result.push_str(&wrapped);
+        is_first_segment = false;
+    }
+
+    result
+}
+
+/// Wrap a single segment of text (between hard line breaks) with first line prefix.
+fn wrap_text_first_line_segment(
     text: &str,
     first_prefix: &str,
     continuation_prefix: &str,

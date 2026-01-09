@@ -2661,3 +2661,64 @@ See [example] and footnote[^1].
         result
     );
 }
+
+#[test]
+fn test_hard_line_break_in_blockquote() {
+    // Hard line breaks (two trailing spaces) in a block quote should preserve
+    // the `>` prefix on the continuation line.
+    // Two trailing spaces create a hard line break (LineBreak node).
+    let input = "> This is a block quote with a hard line break.  \n> This is the second line of the block quote.";
+    let result = parse_and_serialize(input);
+    assert_eq!(
+        result,
+        "> This is a block quote with a hard line break.  \n> This is the second line of the block quote.\n",
+        "Hard line break in blockquote should preserve > prefix on continuation line"
+    );
+}
+
+#[test]
+fn test_hard_line_break_in_nested_blockquote() {
+    // Hard line breaks in nested blockquotes should preserve all levels of `>` prefix.
+    let input = "> > This is a nested quote.  \n> > This is after hard line break.";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("> > This is after hard line break.")
+            || result.contains(">> This is after hard line break."),
+        "Hard line break in nested blockquote should preserve double > prefix.\nGot:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_multiple_hard_line_breaks_in_blockquote() {
+    // Multiple hard line breaks in a block quote should all preserve the prefix.
+    let input = "> Line one.  \n> Line two.  \n> Line three.";
+    let result = parse_and_serialize(input);
+    assert_eq!(
+        result, "> Line one.  \n> Line two.  \n> Line three.\n",
+        "Multiple hard line breaks should preserve > prefix on all lines"
+    );
+}
+
+#[test]
+fn test_hard_line_break_in_alert() {
+    // Hard line breaks in GitHub alerts should preserve the `>` prefix.
+    let input = "> [!NOTE]\n> First line.  \n> Second line after hard break.";
+    let result = parse_and_serialize(input);
+    assert!(
+        result.contains("> Second line after hard break."),
+        "Hard line break in alert should preserve > prefix.\nGot:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_hard_line_break_in_blockquote_with_emphasis() {
+    // Hard line breaks with inline formatting should work correctly.
+    let input = "> *First* line.  \n> *Second* line.";
+    let result = parse_and_serialize(input);
+    assert_eq!(
+        result, "> *First* line.  \n> *Second* line.\n",
+        "Hard line break with emphasis should preserve > prefix"
+    );
+}
