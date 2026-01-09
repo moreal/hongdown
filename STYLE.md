@@ -354,6 +354,27 @@ Pipe characters within cell content are escaped:
 ~~~~
 
 
+Thematic breaks
+---------------
+
+### Centered asterisks
+
+Thematic breaks (horizontal rules) are rendered as centered `*  *  *`:
+
+~~~~ markdown
+Previous section content.
+
+                                    *  *  *
+
+New section content.
+~~~~
+
+*Rationale*: The centered asterisks with double spaces create a visually
+distinct separator while maintaining the philosophy of readable plain text.
+The centered alignment emphasizes the break as a dividing element rather than
+content.
+
+
 Line wrapping
 -------------
 

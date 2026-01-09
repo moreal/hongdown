@@ -1389,9 +1389,86 @@ fn test_mixed_ordered_unordered_lists() {
 fn test_horizontal_rule() {
     let input = "Before\n\n---\n\nAfter";
     let result = parse_and_serialize(input);
-    // Horizontal rules should be preserved
+    // Horizontal rules should be preserved with default centered style
     assert!(result.contains("Before"));
+    assert!(result.contains("*  *  *"));
     assert!(result.contains("After"));
+}
+
+#[test]
+fn test_thematic_break_default_centered() {
+    let input = "Before\n\n---\n\nAfter";
+    let result = parse_and_serialize(input);
+    // Default is centered *  *  * with 80 char width
+    // Style is 7 chars, so padding is (80 - 7) / 2 = 36 spaces
+    let expected_hr = format!("{}*  *  *", " ".repeat(36));
+    assert!(
+        result.contains(&expected_hr),
+        "Expected centered thematic break, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_thematic_break_start_aligned() {
+    use crate::ThematicBreakAlign;
+    let input = "Before\n\n---\n\nAfter";
+    let mut options = Options::default();
+    options.thematic_break_align = ThematicBreakAlign::Start;
+    let result = parse_and_serialize_with_options(input, &options);
+    // Start-aligned should have no leading spaces
+    assert!(
+        result.contains("\n*  *  *\n"),
+        "Expected start-aligned thematic break, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_thematic_break_end_aligned() {
+    use crate::ThematicBreakAlign;
+    let input = "Before\n\n---\n\nAfter";
+    let mut options = Options::default();
+    options.thematic_break_align = ThematicBreakAlign::End;
+    let result = parse_and_serialize_with_options(input, &options);
+    // End-aligned with 80 char width, style is 7 chars, padding is 80 - 7 = 73 spaces
+    let expected_hr = format!("{}*  *  *", " ".repeat(73));
+    assert!(
+        result.contains(&expected_hr),
+        "Expected end-aligned thematic break, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_thematic_break_custom_style() {
+    use crate::ThematicBreakAlign;
+    let input = "Before\n\n---\n\nAfter";
+    let mut options = Options::default();
+    options.thematic_break_style = "---".to_string();
+    options.thematic_break_align = ThematicBreakAlign::Start;
+    let result = parse_and_serialize_with_options(input, &options);
+    assert!(
+        result.contains("\n---\n"),
+        "Expected custom style thematic break, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_thematic_break_various_input_styles() {
+    // Test various input styles are normalized
+    let inputs = vec!["---", "***", "___", "- - -", "* * *", "_ _ _"];
+    for input in inputs {
+        let full_input = format!("Before\n\n{}\n\nAfter", input);
+        let result = parse_and_serialize(&full_input);
+        assert!(
+            result.contains("*  *  *"),
+            "Input '{}' should be normalized to '*  *  *', got:\n{}",
+            input,
+            result
+        );
+    }
 }
 
 #[test]

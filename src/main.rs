@@ -69,6 +69,8 @@ fn main() -> ExitCode {
         min_fence_length: config.code_block.min_fence_length,
         space_after_fence: config.code_block.space_after_fence,
         default_language: config.code_block.default_language.clone(),
+        thematic_break_style: config.thematic_break.style.clone(),
+        thematic_break_align: config.thematic_break.align,
     };
 
     // Determine files to process

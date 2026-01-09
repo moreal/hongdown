@@ -14,7 +14,7 @@
 pub mod config;
 mod serializer;
 
-pub use config::OrderedListPad;
+pub use config::{OrderedListPad, ThematicBreakAlign};
 pub use serializer::Warning;
 
 use comrak::{Arena, Options as ComrakOptions, parse_document};
@@ -70,6 +70,12 @@ pub struct Options {
     /// When empty, code blocks without a language identifier remain without one.
     /// Set to e.g. "text" to add a default language identifier.
     pub default_language: String,
+
+    /// The style string for thematic breaks. Default: `*  *  *`.
+    pub thematic_break_style: String,
+
+    /// Alignment of thematic breaks within the line width. Default: `Center`.
+    pub thematic_break_align: ThematicBreakAlign,
 }
 
 impl Default for Options {
@@ -90,6 +96,8 @@ impl Default for Options {
             min_fence_length: 4,
             space_after_fence: true,
             default_language: String::new(),
+            thematic_break_style: "*  *  *".to_string(),
+            thematic_break_align: ThematicBreakAlign::Center,
         }
     }
 }

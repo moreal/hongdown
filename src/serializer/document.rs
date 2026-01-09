@@ -6,6 +6,7 @@ use regex::Regex;
 use super::Serializer;
 use super::state::Directive;
 use super::wrap;
+use crate::ThematicBreakAlign;
 
 impl<'a> Serializer<'a> {
     pub(super) fn serialize_document<'b>(&mut self, node: &'b AstNode<'b>) {
@@ -594,5 +595,35 @@ impl<'a> Serializer<'a> {
         }
 
         false
+    }
+
+    pub(super) fn serialize_thematic_break(&mut self) {
+        let style = &self.options.thematic_break_style;
+        let align = self.options.thematic_break_align;
+        let line_width = self.options.line_width;
+
+        // Calculate display width of the style string
+        let style_width = style.len();
+
+        // Determine the prefix based on blockquote context
+        let (prefix, available_width) = if self.in_block_quote {
+            let prefix = format!("{}> ", self.blockquote_outer_indent);
+            let prefix_width = prefix.len();
+            (prefix, line_width.saturating_sub(prefix_width))
+        } else {
+            (String::new(), line_width)
+        };
+
+        // Calculate padding based on alignment
+        let padding = match align {
+            ThematicBreakAlign::Start => 0,
+            ThematicBreakAlign::Center => available_width.saturating_sub(style_width) / 2,
+            ThematicBreakAlign::End => available_width.saturating_sub(style_width),
+        };
+
+        self.output.push_str(&prefix);
+        self.output.push_str(&" ".repeat(padding));
+        self.output.push_str(style);
+        self.output.push('\n');
     }
 }

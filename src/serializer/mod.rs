@@ -423,6 +423,9 @@ impl<'a> Serializer<'a> {
             NodeValue::Paragraph => {
                 self.serialize_paragraph(node);
             }
+            NodeValue::ThematicBreak => {
+                self.serialize_thematic_break();
+            }
             NodeValue::Text(text) => {
                 self.output.push_str(&escape::escape_text(text));
             }

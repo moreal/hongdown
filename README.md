@@ -157,6 +157,10 @@ fence_char = "~"          # "~" or "`" (default: "~")
 min_fence_length = 4      # Minimum fence length (default: 4)
 space_after_fence = true  # Space between fence and language (default: true)
 default_language = ""     # Default language for code blocks (default: "")
+
+[thematic_break]
+style = "*  *  *"         # Thematic break style (default: "*  *  *")
+align = "center"          # "start", "center", or "end" (default: "center")
 ~~~~
 
 When `include` patterns are configured, you can run Hongdown without
