@@ -14,7 +14,7 @@
 pub mod config;
 mod serializer;
 
-pub use config::{OrderedListPad, ThematicBreakAlign};
+pub use config::OrderedListPad;
 pub use serializer::Warning;
 
 use comrak::{Arena, Options as ComrakOptions, parse_document};
@@ -74,8 +74,9 @@ pub struct Options {
     /// The style string for thematic breaks. Default: `*  *  *`.
     pub thematic_break_style: String,
 
-    /// Alignment of thematic breaks within the line width. Default: `Center`.
-    pub thematic_break_align: ThematicBreakAlign,
+    /// Number of leading spaces before thematic breaks (0-3). Default: 0.
+    /// CommonMark allows 0-3 leading spaces for thematic breaks.
+    pub thematic_break_leading_spaces: usize,
 }
 
 impl Default for Options {
@@ -96,8 +97,8 @@ impl Default for Options {
             min_fence_length: 4,
             space_after_fence: true,
             default_language: String::new(),
-            thematic_break_style: "*  *  *".to_string(),
-            thematic_break_align: ThematicBreakAlign::Center,
+            thematic_break_style: "*  *  *  *  *".to_string(),
+            thematic_break_leading_spaces: 2,
         }
     }
 }

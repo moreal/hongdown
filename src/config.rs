@@ -173,19 +173,6 @@ impl Default for CodeBlockConfig {
     }
 }
 
-/// Alignment for thematic breaks.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum ThematicBreakAlign {
-    /// Align to the start (left) of the line.
-    Start,
-    /// Center the thematic break (default).
-    #[default]
-    Center,
-    /// Align to the end (right) of the line.
-    End,
-}
-
 /// Thematic break (horizontal rule) formatting options.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(default)]
@@ -193,15 +180,16 @@ pub struct ThematicBreakConfig {
     /// The style string for thematic breaks (default: `*  *  *`).
     pub style: String,
 
-    /// Alignment of the thematic break within the line width (default: `center`).
-    pub align: ThematicBreakAlign,
+    /// Number of leading spaces before the thematic break (0-3, default: 0).
+    /// CommonMark allows 0-3 leading spaces for thematic breaks.
+    pub leading_spaces: usize,
 }
 
 impl Default for ThematicBreakConfig {
     fn default() -> Self {
         Self {
-            style: "*  *  *".to_string(),
-            align: ThematicBreakAlign::Center,
+            style: "*  *  *  *  *".to_string(),
+            leading_spaces: 2,
         }
     }
 }
@@ -366,8 +354,8 @@ mod tests {
         assert_eq!(config.code_block.min_fence_length, 4);
         assert!(config.code_block.space_after_fence);
         assert_eq!(config.code_block.default_language, "");
-        assert_eq!(config.thematic_break.style, "*  *  *");
-        assert_eq!(config.thematic_break.align, ThematicBreakAlign::Center);
+        assert_eq!(config.thematic_break.style, "*  *  *  *  *");
+        assert_eq!(config.thematic_break.leading_spaces, 2);
     }
 
     #[test]
@@ -508,8 +496,8 @@ min_fence_length = 4
 space_after_fence = true
 
 [thematic_break]
-style = "*  *  *"
-align = "center"
+style = "*  *  *  *  *"
+leading_spaces = 2
 "#,
         )
         .unwrap();
@@ -522,24 +510,10 @@ align = "center"
             r#"
 [thematic_break]
 style = "---"
-align = "start"
 "#,
         )
         .unwrap();
         assert_eq!(config.thematic_break.style, "---");
-        assert_eq!(config.thematic_break.align, ThematicBreakAlign::Start);
-    }
-
-    #[test]
-    fn test_parse_thematic_break_align_end() {
-        let config = Config::from_toml(
-            r#"
-[thematic_break]
-align = "end"
-"#,
-        )
-        .unwrap();
-        assert_eq!(config.thematic_break.align, ThematicBreakAlign::End);
     }
 
     #[test]

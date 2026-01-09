@@ -70,8 +70,17 @@ fn main() -> ExitCode {
         space_after_fence: config.code_block.space_after_fence,
         default_language: config.code_block.default_language.clone(),
         thematic_break_style: config.thematic_break.style.clone(),
-        thematic_break_align: config.thematic_break.align,
+        thematic_break_leading_spaces: config.thematic_break.leading_spaces.min(3),
     };
+
+    // Warn if thematic_break.leading_spaces exceeds CommonMark limit
+    if config.thematic_break.leading_spaces > 3 {
+        eprintln!(
+            "warning: thematic_break.leading_spaces value {} exceeds CommonMark limit, \
+             clamped to 3",
+            config.thematic_break.leading_spaces
+        );
+    }
 
     // Determine files to process
     let files: Vec<PathBuf> = if args.files.is_empty() && !args.stdin {
