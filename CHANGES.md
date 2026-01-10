@@ -4,7 +4,7 @@ Hongdown changelog
 Version 0.1.0
 -------------
 
-To be released. Initial release with the following features:
+Released on January 10, 2026. Initial release with the following features:
 
  -  Markdown formatting following Hong Minhee's style conventions:
 
