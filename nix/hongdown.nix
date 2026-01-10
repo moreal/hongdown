@@ -1,0 +1,27 @@
+{
+  lib,
+  rustPlatform,
+  fetchFromGithub,
+  ...
+}:
+rustPlatform.buildRustPackage rec {
+  name = "hongdown";
+  version = "0.1.0";
+  description = "A Markdown formatter that enforces Hong Minhee's Markdown style conventions";
+
+  src = fetchFromGithub {
+    owner = "dahlia";
+    repo = "hongdown";
+    rev = "${version}";
+    hash = "sha256-dXDzzXNy5noOVCTmzueospo9xJdwdDswAWpkkFBOeLQ=";
+  };
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-lV+lPM/AAnhvoekR5iEWbes9aShqTbkDCJSw56eqUgI=";
+  meta = {
+    description = "Check for outdated dependencies in a cargo workspace";
+    mainProgram = "hongdown";
+    homepage = "https://github.com/dahlia/hongdown";
+    license = lib.licenses.gpl3;
+    maintainers = [];
+  };
+}
