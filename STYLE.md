@@ -183,6 +183,19 @@ Align continuation lines with the start of the item text:
     on the next line with proper alignment.
 ~~~~
 
+### Task lists
+
+Task list items use checkboxes (`[ ]` for unchecked, `[x]` for checked) after
+the list marker:
+
+~~~~ markdown
+ -  [ ] Unchecked task
+ -  [x] Completed task
+~~~~
+
+*Rationale*: Task lists follow the same spacing rules as regular unordered
+lists, keeping the document consistent.
+
 
 Code
 ----

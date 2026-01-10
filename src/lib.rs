@@ -71,10 +71,10 @@ pub struct Options {
     /// Set to e.g. "text" to add a default language identifier.
     pub default_language: String,
 
-    /// The style string for thematic breaks. Default: `*  *  *`.
+    /// The style string for thematic breaks. Default: 37 spaced dashes.
     pub thematic_break_style: String,
 
-    /// Number of leading spaces before thematic breaks (0-3). Default: 0.
+    /// Number of leading spaces before thematic breaks (0-3). Default: 3.
     /// CommonMark allows 0-3 leading spaces for thematic breaks.
     pub thematic_break_leading_spaces: usize,
 }

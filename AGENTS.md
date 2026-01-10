@@ -12,7 +12,7 @@ Hongdown is a Markdown formatter that enforces Hong Minhee's Markdown style
 conventions.  The formatter is implemented in Rust (Edition 2024) using the
 comrak library for parsing.  It produces consistently formatted Markdown
 output following a distinctive style used across multiple projects including
-Fedify, Hollo, and Vertana.
+Fedify, LogTape, and Optique.
 
 ### Project architecture
 
