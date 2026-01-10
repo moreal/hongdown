@@ -1,7 +1,7 @@
 {
   lib,
   rustPlatform,
-  fetchFromGithub,
+  fetchFromGitHub,
   ...
 }:
 rustPlatform.buildRustPackage rec {
@@ -9,7 +9,7 @@ rustPlatform.buildRustPackage rec {
   version = "0.1.0";
   description = "A Markdown formatter that enforces Hong Minhee's Markdown style conventions";
 
-  src = fetchFromGithub {
+  src = fetchFromGitHub {
     owner = "dahlia";
     repo = "hongdown";
     rev = "${version}";

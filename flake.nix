@@ -25,20 +25,17 @@
       in {
         # Run `nix develop` to get a reproducible dev shell
         devShells.default = pkgs.mkShell {
-          buildInputs = [ rust ];
+          buildInputs = [rust];
         };
         # Build nix packages with `nix build`
         packages = rec {
           default = hongdown;
-          hongdown = let
-            lib = pkgs.lib;
-            rustPlatform = pkgs.rustPlatform;
-            fetchFromGithub = pkgs.fetchFromGitHub;
-          in
-            import ./nix/hongdown.nix {inherit lib rustPlatform fetchFromGithub;};
+          hongdown = pkgs.callPackage ./nix/hongdown.nix {};
         };
         # Run the program with `nix run`
-        apps.default = self.packages.default;
+        apps.default = flake-utils.lib.mkApp {
+          drv = self.packages.${system}.default;
+        };
       }
     );
 }
