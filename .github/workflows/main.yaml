@@ -209,7 +209,7 @@ jobs:
         mkdir -p npm/wasm/pkg
         cp -r pkg/* npm/wasm/pkg/
         cd npm/wasm
-        npm install
+        npm ci
         npm run build
 
     - uses: actions/upload-artifact@v6
@@ -218,6 +218,8 @@ jobs:
         path: |
           npm/wasm/dist/
           npm/wasm/package.json
+          npm/wasm/package-lock.json
+          npm/wasm/README.md
           npm/wasm/tsconfig.json
 
   release:
@@ -476,16 +478,15 @@ jobs:
           < package.json > package.json.tmp
         mv package.json.tmp package.json
 
-        # Copy README
-        cp ../../README.md .
-
     - name: Publish to npm
       env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         VERSION: ${{ needs.version.outputs.version }}
       run: |
         set -euxo pipefail
         cd npm/wasm
+
+        # Install dependencies for prepublishOnly script
+        npm ci
 
         # Determine tag for dev versions
         if [[ "$VERSION" == *"-dev."* ]]; then
