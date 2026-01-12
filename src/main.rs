@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::Parser;
 use hongdown::config::Config;
-use hongdown::{Options, format_with_warnings};
+use hongdown::{Options, format_with_warnings, validate_dash_settings};
 use rayon::prelude::*;
 use similar::{ChangeTag, TextDiff};
 use walkdir::WalkDir;
@@ -72,6 +72,12 @@ fn main() -> ExitCode {
         default_language: config.code_block.default_language.clone(),
         thematic_break_style: config.thematic_break.style.clone(),
         thematic_break_leading_spaces: config.thematic_break.leading_spaces.min(3),
+        curly_double_quotes: config.punctuation.curly_double_quotes,
+        curly_single_quotes: config.punctuation.curly_single_quotes,
+        curly_apostrophes: config.punctuation.curly_apostrophes,
+        ellipsis: config.punctuation.ellipsis,
+        en_dash: config.punctuation.en_dash.clone(),
+        em_dash: config.punctuation.em_dash.clone(),
     };
 
     // Warn if thematic_break.leading_spaces exceeds CommonMark limit
@@ -81,6 +87,12 @@ fn main() -> ExitCode {
              clamped to 3",
             config.thematic_break.leading_spaces
         );
+    }
+
+    // Validate punctuation settings
+    if let Err(e) = validate_dash_settings(&options) {
+        eprintln!("Error: {}", e);
+        return ExitCode::FAILURE;
     }
 
     // Check if stdin is explicitly requested via --stdin or `-` as filename

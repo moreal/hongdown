@@ -4,6 +4,7 @@ use comrak::nodes::{AstNode, NodeValue};
 
 use super::Serializer;
 use super::escape;
+use super::punctuation;
 
 impl<'a> Serializer<'a> {
     pub(super) fn collect_text<'b>(&mut self, node: &'b AstNode<'b>) -> String {
@@ -38,11 +39,14 @@ impl<'a> Serializer<'a> {
     fn collect_text_recursive<'b>(&mut self, node: &'b AstNode<'b>, text: &mut String) {
         match &node.data.borrow().value {
             NodeValue::Text(t) => {
+                // Apply punctuation transformation first
+                let transformed = punctuation::transform_punctuation(t, self.options);
+
                 // Try to preserve escapes from the original source
                 if let Some(source) = self.extract_source(node) {
-                    text.push_str(&Self::escape_text_preserving_source(t, &source));
+                    text.push_str(&Self::escape_text_preserving_source(&transformed, &source));
                 } else {
-                    text.push_str(&escape::escape_text(t));
+                    text.push_str(&escape::escape_text(&transformed));
                 }
             }
             NodeValue::Code(code) => {
@@ -128,11 +132,14 @@ impl<'a> Serializer<'a> {
     pub(super) fn collect_inline_node<'b>(&mut self, node: &'b AstNode<'b>, content: &mut String) {
         match &node.data.borrow().value {
             NodeValue::Text(text) => {
+                // Apply punctuation transformation first
+                let transformed = punctuation::transform_punctuation(text, self.options);
+
                 // Try to preserve escapes from the original source
                 if let Some(source) = self.extract_source(node) {
-                    content.push_str(&Self::escape_text_preserving_source(text, &source));
+                    content.push_str(&Self::escape_text_preserving_source(&transformed, &source));
                 } else {
-                    content.push_str(&escape::escape_text(text));
+                    content.push_str(&escape::escape_text(&transformed));
                 }
             }
             NodeValue::SoftBreak => {

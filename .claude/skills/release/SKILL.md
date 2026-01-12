@@ -54,7 +54,7 @@ They are created from `X.Y-maintenance` branches.
     ~~~~
 
 2.  Update *CHANGES.md*: Find the section for the version being released and
-    change "To be released." to "Released on {Month} {Day}, {Year}." using
+    change “To be released.” to “Released on {Month} {Day}, {Year}.” using
     the current date in English.  For example:
 
     ~~~~ markdown
@@ -239,7 +239,7 @@ changes.  They are always created from the `main` branch with patch version 0.
     ~~~~
 
 2.  Update *CHANGES.md*: Find the section for the version being released and
-    change "To be released." to "Released on {Month} {Day}, {Year}." using
+    change “To be released.” to “Released on {Month} {Day}, {Year}.” using
     the current date in English.  For example:
 
     ~~~~ markdown
@@ -391,11 +391,11 @@ Checklist summary
 
  -  [ ] Check out `X.Y-maintenance` branch
  -  [ ] Update *CHANGES.md* release date
- -  [ ] Commit with message "Release X.Y.Z"
+ -  [ ] Commit with message “Release X.Y.Z”
  -  [ ] Create tag `X.Y.Z` with `-m "Hongdown X.Y.Z"`
  -  [ ] Add next version section to *CHANGES.md*
  -  [ ] Bump version in *Cargo.toml*
- -  [ ] Commit with message "Version bump\\n\\n\[ci skip]"
+ -  [ ] Commit with message `Version bump\n\n[ci skip]`
  -  [ ] Push tag and branch
  -  [ ] Cascade merge to newer maintenance branches (if any):
      -  [ ] Merge tag into newer branch
@@ -408,15 +408,15 @@ Checklist summary
 
  -  [ ] Check out `main` branch
  -  [ ] Update *CHANGES.md* release date
- -  [ ] Commit with message "Release X.Y.0"
+ -  [ ] Commit with message “Release X.Y.0”
  -  [ ] Create tag `X.Y.0` with `-m "Hongdown X.Y.0"`
  -  [ ] Add next version section to *CHANGES.md*
  -  [ ] Bump version in *Cargo.toml*
- -  [ ] Commit with message "Version bump\\n\\n\[ci skip]"
+ -  [ ] Commit with message `Version bump\n\n[ci skip]`
  -  [ ] Push tag and `main` branch
  -  [ ] Create `X.Y-maintenance` branch from tag
  -  [ ] Check out maintenance branch
  -  [ ] Add patch version section to *CHANGES.md*
  -  [ ] Bump version to X.Y.1 in *Cargo.toml*
- -  [ ] Commit with message "Version bump\\n\\n\[ci skip]"
+ -  [ ] Commit with message `Version bump\n\n[ci skip]`
  -  [ ] Push maintenance branch

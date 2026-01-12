@@ -6,6 +6,20 @@ Version 0.2.0
 
 To be released.
 
+ -  Added SmartyPants-style punctuation transformation.  The formatter can now
+    convert ASCII punctuation to typographically correct Unicode equivalents.
+    Configurable via the `[punctuation]` section in _.hongdown.toml_:
+
+     -  `curly_double_quotes`: Convert `"text"` to `“text”` (default: true)
+     -  `curly_single_quotes`: Convert `'text'` to `‘text’` (default: true)
+     -  `curly_apostrophes`: Convert `it's` to `it’s` (default: false)
+     -  `ellipsis`: Convert `...` to `…` (default: true)
+     -  `en_dash`: Convert pattern to `–` (default: disabled)
+     -  `em_dash`: Convert `--` to `—` (default: `"--"`)
+
+
+    Code spans and fenced code blocks are never transformed.
+
  -  Fixed Setext-style heading underlines to match the display width of the
     heading text.  East Asian wide characters are now correctly counted as
     2 columns.  [[#5] by Lee Dogeon]

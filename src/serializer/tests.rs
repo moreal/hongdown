@@ -3227,7 +3227,6 @@ fn test_korean_line_exactly_at_width_limit() {
         .trim_start_matches('\n')
     );
 }
-
 // Setext Heading Display Width Tests
 // =============================================================================
 
@@ -3261,4 +3260,302 @@ fn test_setext_h2_with_fullwidth_characters() {
 "#
         .trim_start_matches('\n')
     );
+}
+
+// =============================================================================
+// Punctuation Transformation Tests (SmartyPants-style)
+// =============================================================================
+
+// Unicode constants for curly quotes (using escape sequences for Claude compatibility)
+const LEFT_DOUBLE_QUOTE: char = '\u{201C}';
+const RIGHT_DOUBLE_QUOTE: char = '\u{201D}';
+const LEFT_SINGLE_QUOTE: char = '\u{2018}';
+const RIGHT_SINGLE_QUOTE: char = '\u{2019}';
+const ELLIPSIS: char = '\u{2026}';
+const EM_DASH: char = '\u{2014}';
+const EN_DASH: char = '\u{2013}';
+
+#[test]
+fn test_punctuation_curly_double_quotes_in_paragraph() {
+    // Default: curly_double_quotes is enabled
+    let input = "He said \"hello\" to her.";
+    let result = parse_and_serialize(input);
+    let expected = format!(
+        "He said {}hello{} to her.\n",
+        LEFT_DOUBLE_QUOTE, RIGHT_DOUBLE_QUOTE
+    );
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_curly_double_quotes_disabled() {
+    let mut options = Options::default();
+    options.curly_double_quotes = false;
+    let input = "He said \"hello\" to her.";
+    let result = parse_and_serialize_with_options(input, &options);
+    assert_eq!(result, "He said \"hello\" to her.\n");
+}
+
+#[test]
+fn test_punctuation_curly_single_quotes_in_paragraph() {
+    // Default: curly_single_quotes is enabled
+    let input = "She said 'hello' to him.";
+    let result = parse_and_serialize(input);
+    let expected = format!(
+        "She said {}hello{} to him.\n",
+        LEFT_SINGLE_QUOTE, RIGHT_SINGLE_QUOTE
+    );
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_curly_single_quotes_disabled() {
+    let mut options = Options::default();
+    options.curly_single_quotes = false;
+    let input = "She said 'hello' to him.";
+    let result = parse_and_serialize_with_options(input, &options);
+    assert_eq!(result, "She said 'hello' to him.\n");
+}
+
+#[test]
+fn test_punctuation_ellipsis_in_paragraph() {
+    // Default: ellipsis is enabled
+    let input = "Wait for it...";
+    let result = parse_and_serialize(input);
+    let expected = format!("Wait for it{}\n", ELLIPSIS);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_ellipsis_disabled() {
+    let mut options = Options::default();
+    options.ellipsis = false;
+    let input = "Wait for it...";
+    let result = parse_and_serialize_with_options(input, &options);
+    assert_eq!(result, "Wait for it...\n");
+}
+
+#[test]
+fn test_punctuation_em_dash_default() {
+    // Default: em_dash is "--"
+    let input = "Hello--world";
+    let result = parse_and_serialize(input);
+    let expected = format!("Hello{}world\n", EM_DASH);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_em_dash_disabled() {
+    let mut options = Options::default();
+    options.em_dash = crate::DashSetting::Disabled;
+    let input = "Hello--world";
+    let result = parse_and_serialize_with_options(input, &options);
+    assert_eq!(result, "Hello--world\n");
+}
+
+#[test]
+fn test_punctuation_em_dash_triple_hyphen() {
+    let mut options = Options::default();
+    options.em_dash = crate::DashSetting::Pattern("---".to_string());
+    let input = "Hello---world";
+    let result = parse_and_serialize_with_options(input, &options);
+    let expected = format!("Hello{}world\n", EM_DASH);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_en_dash_disabled_by_default() {
+    // Default: en_dash is disabled
+    let input = "Pages 10--20";
+    let result = parse_and_serialize(input);
+    // Since em_dash is "--" by default, this becomes em-dash
+    let expected = format!("Pages 10{}20\n", EM_DASH);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_en_dash_enabled() {
+    let mut options = Options::default();
+    options.em_dash = crate::DashSetting::Pattern("---".to_string());
+    options.en_dash = crate::DashSetting::Pattern("--".to_string());
+    let input = "Pages 10--20 and a long---dash";
+    let result = parse_and_serialize_with_options(input, &options);
+    let expected = format!("Pages 10{}20 and a long{}dash\n", EN_DASH, EM_DASH);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_apostrophes_disabled_by_default() {
+    // Default: curly_apostrophes is disabled
+    let input = "It's a test";
+    let result = parse_and_serialize(input);
+    assert_eq!(result, "It's a test\n");
+}
+
+#[test]
+fn test_punctuation_apostrophes_enabled() {
+    let mut options = Options::default();
+    options.curly_apostrophes = true;
+    let input = "It's a test";
+    let result = parse_and_serialize_with_options(input, &options);
+    let expected = format!("It{}s a test\n", RIGHT_SINGLE_QUOTE);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_no_transform_in_inline_code() {
+    // Code spans should NOT have punctuation transformed
+    let input = "Use `\"hello\"` for strings.";
+    let result = parse_and_serialize(input);
+    // The quotes inside backticks should remain straight
+    assert!(
+        result.contains("`\"hello\"`"),
+        "Quotes in code spans should not be transformed, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_punctuation_no_transform_in_fenced_code_block() {
+    // Fenced code blocks should NOT have punctuation transformed
+    let input = "~~~~ python\nprint(\"Hello...\")\n~~~~";
+    let result = parse_and_serialize(input);
+    // The quotes and ellipsis inside the code block should remain unchanged
+    assert!(
+        result.contains("print(\"Hello...\")"),
+        "Content in fenced code blocks should not be transformed, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_punctuation_in_heading() {
+    // Punctuation in headings should also be transformed
+    let input = "# \"Hello\" World";
+    let result = parse_and_serialize(input);
+    let expected = format!(
+        "{}Hello{} World\n=============\n",
+        LEFT_DOUBLE_QUOTE, RIGHT_DOUBLE_QUOTE
+    );
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_in_list_item() {
+    // Punctuation in list items should be transformed
+    let input = " -  He said \"yes\"";
+    let result = parse_and_serialize(input);
+    let expected = format!(
+        " -  He said {}yes{}\n",
+        LEFT_DOUBLE_QUOTE, RIGHT_DOUBLE_QUOTE
+    );
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_in_blockquote() {
+    // Punctuation in blockquotes should be transformed
+    let input = "> \"Quote inside quote\"";
+    let result = parse_and_serialize(input);
+    let expected = format!(
+        "> {}Quote inside quote{}\n",
+        LEFT_DOUBLE_QUOTE, RIGHT_DOUBLE_QUOTE
+    );
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_preserve_existing_curly_quotes() {
+    // Already curly quotes should be preserved
+    let input = format!("Already {}curly{}", LEFT_DOUBLE_QUOTE, RIGHT_DOUBLE_QUOTE);
+    let result = parse_and_serialize(&input);
+    // Should not double-transform
+    assert!(
+        result.contains(&format!("{}curly{}", LEFT_DOUBLE_QUOTE, RIGHT_DOUBLE_QUOTE)),
+        "Existing curly quotes should be preserved, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_punctuation_all_transforms_combined() {
+    // Test multiple punctuation transforms in one paragraph
+    let input = "He said \"It's... amazing--isn't it?\"";
+    let mut options = Options::default();
+    options.curly_apostrophes = true;
+    let result = parse_and_serialize_with_options(input, &options);
+
+    // Should have curly double quotes
+    assert!(
+        result.contains(LEFT_DOUBLE_QUOTE) && result.contains(RIGHT_DOUBLE_QUOTE),
+        "Should have curly double quotes, got:\n{}",
+        result
+    );
+    // Should have ellipsis
+    assert!(
+        result.contains(ELLIPSIS),
+        "Should have ellipsis, got:\n{}",
+        result
+    );
+    // Should have em-dash
+    assert!(
+        result.contains(EM_DASH),
+        "Should have em-dash, got:\n{}",
+        result
+    );
+    // Should have curly apostrophes
+    assert!(
+        result.contains(RIGHT_SINGLE_QUOTE),
+        "Should have curly apostrophes, got:\n{}",
+        result
+    );
+}
+
+#[test]
+fn test_punctuation_all_disabled() {
+    let mut options = Options::default();
+    options.curly_double_quotes = false;
+    options.curly_single_quotes = false;
+    options.curly_apostrophes = false;
+    options.ellipsis = false;
+    options.em_dash = crate::DashSetting::Disabled;
+    options.en_dash = crate::DashSetting::Disabled;
+
+    let input = "He said \"It's... amazing--isn't it?\"";
+    let result = parse_and_serialize_with_options(input, &options);
+
+    // Nothing should be transformed
+    assert_eq!(result, "He said \"It's... amazing--isn't it?\"\n");
+}
+
+#[test]
+fn test_punctuation_decade_abbreviation() {
+    // '80s style decade abbreviations
+    let input = "The '80s were great.";
+    let result = parse_and_serialize(input);
+    // The apostrophe before the decade should become right single quote
+    let expected = format!("The {}80s were great.\n", RIGHT_SINGLE_QUOTE);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_single_hyphen_em_dash_with_spaces() {
+    // Single hyphen with spaces should transform when em_dash = "-"
+    let mut options = Options::default();
+    options.em_dash = crate::DashSetting::Pattern("-".to_string());
+    let input = "word - word";
+    let result = parse_and_serialize_with_options(input, &options);
+    let expected = format!("word {} word\n", EM_DASH);
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn test_punctuation_single_hyphen_em_dash_without_spaces() {
+    // Single hyphen without spaces should NOT transform when em_dash = "-"
+    let mut options = Options::default();
+    options.em_dash = crate::DashSetting::Pattern("-".to_string());
+    let input = "word-word";
+    let result = parse_and_serialize_with_options(input, &options);
+    // Hyphen should remain because it's not surrounded by spaces
+    assert_eq!(result, "word-word\n");
 }

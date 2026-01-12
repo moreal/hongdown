@@ -173,6 +173,14 @@ default_language = ""     # Default language for code blocks (default: "")
 [thematic_break]
 style = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
 leading_spaces = 3        # Leading spaces (0-3, default: 3)
+
+[punctuation]
+curly_double_quotes = true   # "text" to "text" (default: true)
+curly_single_quotes = true   # 'text' to 'text' (default: true)
+curly_apostrophes = false    # it's to it's (default: false)
+ellipsis = true              # ... to ... (default: true)
+en_dash = false              # Disabled by default (use "--" to enable)
+em_dash = "--"               # -- to --- (default: "--", use false to disable)
 ~~~~
 
 When `include` patterns are configured, you can run Hongdown without

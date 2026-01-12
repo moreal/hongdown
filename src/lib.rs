@@ -14,8 +14,9 @@
 pub mod config;
 mod serializer;
 
-pub use config::OrderedListPad;
+pub use config::{DashSetting, OrderedListPad};
 pub use serializer::Warning;
+pub use serializer::punctuation::{PunctuationError, validate_dash_settings};
 
 use comrak::{Arena, Options as ComrakOptions, parse_document};
 
@@ -77,6 +78,32 @@ pub struct Options {
     /// Number of leading spaces before thematic breaks (0-3). Default: 3.
     /// CommonMark allows 0-3 leading spaces for thematic breaks.
     pub thematic_break_leading_spaces: usize,
+
+    /// Convert straight double quotes to curly quotes. Default: true.
+    /// `"text"` becomes `"text"` (U+201C and U+201D).
+    pub curly_double_quotes: bool,
+
+    /// Convert straight single quotes to curly quotes. Default: true.
+    /// `'text'` becomes `'text'` (U+2018 and U+2019).
+    pub curly_single_quotes: bool,
+
+    /// Convert straight apostrophes to curly apostrophes. Default: false.
+    /// `it's` becomes `it's` (U+2019).
+    pub curly_apostrophes: bool,
+
+    /// Convert three dots to ellipsis character. Default: true.
+    /// `...` becomes `…` (U+2026).
+    pub ellipsis: bool,
+
+    /// Convert a pattern to en-dash. Default: disabled.
+    /// Set to a string like `"--"` to enable.
+    /// The pattern is replaced with `–` (U+2013).
+    pub en_dash: DashSetting,
+
+    /// Convert a pattern to em-dash. Default: `"--"`.
+    /// Set to `Disabled` to disable, or a string like `"---"` for a different pattern.
+    /// The pattern is replaced with `—` (U+2014).
+    pub em_dash: DashSetting,
 }
 
 impl Default for Options {
@@ -101,6 +128,12 @@ impl Default for Options {
                 "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
                     .to_string(),
             thematic_break_leading_spaces: 3,
+            curly_double_quotes: true,
+            curly_single_quotes: true,
+            curly_apostrophes: false,
+            ellipsis: true,
+            en_dash: DashSetting::Disabled,
+            em_dash: DashSetting::Pattern("--".to_string()),
         }
     }
 }
@@ -216,6 +249,7 @@ impl std::error::Error for FormatError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use config::DashSetting;
 
     #[test]
     fn test_format_empty_input() {
@@ -228,5 +262,16 @@ mod tests {
         let input = "Hello, world!";
         let result = format(input, &Options::default()).unwrap();
         assert_eq!(result, "Hello, world!\n");
+    }
+
+    #[test]
+    fn test_options_default_punctuation() {
+        let options = Options::default();
+        assert!(options.curly_double_quotes);
+        assert!(options.curly_single_quotes);
+        assert!(!options.curly_apostrophes);
+        assert!(options.ellipsis);
+        assert_eq!(options.en_dash, DashSetting::Disabled);
+        assert_eq!(options.em_dash, DashSetting::Pattern("--".to_string()));
     }
 }

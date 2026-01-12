@@ -39,6 +39,9 @@ pub struct Config {
 
     /// Thematic break (horizontal rule) formatting options.
     pub thematic_break: ThematicBreakConfig,
+
+    /// Punctuation transformation options (SmartyPants-style).
+    pub punctuation: PunctuationConfig,
 }
 
 impl Default for Config {
@@ -52,6 +55,7 @@ impl Default for Config {
             ordered_list: OrderedListConfig::default(),
             code_block: CodeBlockConfig::default(),
             thematic_break: ThematicBreakConfig::default(),
+            punctuation: PunctuationConfig::default(),
         }
     }
 }
@@ -191,6 +195,109 @@ impl Default for ThematicBreakConfig {
             style: "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
                 .to_string(),
             leading_spaces: 3,
+        }
+    }
+}
+
+/// Dash transformation setting.
+/// Can be `false` (disabled) or a string pattern to match.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum DashSetting {
+    /// Dash transformation is disabled.
+    #[default]
+    Disabled,
+    /// Transform the given pattern to a dash character.
+    Pattern(String),
+}
+
+impl<'de> Deserialize<'de> for DashSetting {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+
+        struct DashSettingVisitor;
+
+        impl<'de> Visitor<'de> for DashSettingVisitor {
+            type Value = DashSetting;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("false or a string pattern")
+            }
+
+            fn visit_bool<E>(self, value: bool) -> Result<DashSetting, E>
+            where
+                E: de::Error,
+            {
+                if value {
+                    Err(de::Error::custom(
+                        "expected false or a string pattern, got true",
+                    ))
+                } else {
+                    Ok(DashSetting::Disabled)
+                }
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<DashSetting, E>
+            where
+                E: de::Error,
+            {
+                Ok(DashSetting::Pattern(value.to_string()))
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<DashSetting, E>
+            where
+                E: de::Error,
+            {
+                Ok(DashSetting::Pattern(value))
+            }
+        }
+
+        deserializer.deserialize_any(DashSettingVisitor)
+    }
+}
+
+/// Punctuation transformation options (SmartyPants-style).
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct PunctuationConfig {
+    /// Convert straight double quotes to curly quotes (default: true).
+    /// `"text"` becomes `"text"` (U+201C and U+201D).
+    pub curly_double_quotes: bool,
+
+    /// Convert straight single quotes to curly quotes (default: true).
+    /// `'text'` becomes `'text'` (U+2018 and U+2019).
+    pub curly_single_quotes: bool,
+
+    /// Convert straight apostrophes to curly apostrophes (default: false).
+    /// `it's` becomes `it's` (U+2019).
+    pub curly_apostrophes: bool,
+
+    /// Convert three dots to ellipsis character (default: true).
+    /// `...` becomes `…` (U+2026).
+    pub ellipsis: bool,
+
+    /// Convert a pattern to en-dash (default: disabled).
+    /// Set to a string like `"--"` to enable.
+    /// The pattern is replaced with `–` (U+2013).
+    pub en_dash: DashSetting,
+
+    /// Convert a pattern to em-dash (default: `"--"`).
+    /// Set to `false` to disable, or a string like `"---"` for a different pattern.
+    /// The pattern is replaced with `—` (U+2014).
+    pub em_dash: DashSetting,
+}
+
+impl Default for PunctuationConfig {
+    fn default() -> Self {
+        Self {
+            curly_double_quotes: true,
+            curly_single_quotes: true,
+            curly_apostrophes: false,
+            ellipsis: true,
+            en_dash: DashSetting::Disabled,
+            em_dash: DashSetting::Pattern("--".to_string()),
         }
     }
 }
@@ -668,5 +775,91 @@ exclude = ["vendor/**"]
         assert!(files.is_empty());
 
         let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_default_punctuation_config() {
+        let config = PunctuationConfig::default();
+        assert!(config.curly_double_quotes);
+        assert!(config.curly_single_quotes);
+        assert!(!config.curly_apostrophes);
+        assert!(config.ellipsis);
+        assert_eq!(config.en_dash, DashSetting::Disabled);
+        assert_eq!(config.em_dash, DashSetting::Pattern("--".to_string()));
+    }
+
+    #[test]
+    fn test_parse_punctuation_config_all_options() {
+        let config = Config::from_toml(
+            r#"
+[punctuation]
+curly_double_quotes = false
+curly_single_quotes = false
+curly_apostrophes = true
+ellipsis = false
+en_dash = "--"
+em_dash = "---"
+"#,
+        )
+        .unwrap();
+        assert!(!config.punctuation.curly_double_quotes);
+        assert!(!config.punctuation.curly_single_quotes);
+        assert!(config.punctuation.curly_apostrophes);
+        assert!(!config.punctuation.ellipsis);
+        assert_eq!(
+            config.punctuation.en_dash,
+            DashSetting::Pattern("--".to_string())
+        );
+        assert_eq!(
+            config.punctuation.em_dash,
+            DashSetting::Pattern("---".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_dash_setting_disabled() {
+        let config = Config::from_toml(
+            r#"
+[punctuation]
+em_dash = false
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.punctuation.em_dash, DashSetting::Disabled);
+    }
+
+    #[test]
+    fn test_parse_dash_setting_pattern() {
+        let config = Config::from_toml(
+            r#"
+[punctuation]
+en_dash = "---"
+"#,
+        )
+        .unwrap();
+        assert_eq!(
+            config.punctuation.en_dash,
+            DashSetting::Pattern("---".to_string())
+        );
+    }
+
+    #[test]
+    fn test_punctuation_config_in_full_config() {
+        let config = Config::from_toml(
+            r#"
+line_width = 100
+
+[punctuation]
+curly_double_quotes = true
+em_dash = "--"
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.line_width, 100);
+        assert!(config.punctuation.curly_double_quotes);
+        assert_eq!(
+            config.punctuation.em_dash,
+            DashSetting::Pattern("--".to_string())
+        );
     }
 }

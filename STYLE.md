@@ -459,6 +459,79 @@ sections in the plain text source.
 Files end with exactly one trailing newline.
 
 
+Punctuation
+-----------
+
+Hongdown supports SmartyPants-style punctuation transformations that convert
+ASCII punctuation to their typographically correct Unicode equivalents.
+These transformations are optional and configurable.
+
+### Curly quotes
+
+Straight double quotes (`"`) are converted to curly quotes:
+
+~~~~ markdown
+He said "hello" to her.    →    He said “hello” to her.
+~~~~
+
+Straight single quotes (`'`) used as quotation marks are converted to curly
+single quotes:
+
+~~~~ markdown
+She said 'hello' to him.    →    She said ‘hello’ to him.
+~~~~
+
+*Rationale*: Curly quotes are typographically correct and improve the visual
+appearance of rendered text.
+
+### Apostrophes
+
+By default, apostrophes in contractions remain as the ASCII character (`'`).
+The Unicode name for this character is U+0027 APOSTROPHE, so using it for
+apostrophes is semantically correct.  Converting to curly apostrophes can be
+enabled via configuration:
+
+~~~~ markdown
+It's a beautiful day.    →    It’s a beautiful day.    (when enabled)
+The '90s were great.     →    The ’90s were great.     (when enabled)
+~~~~
+
+### Ellipsis
+
+Three consecutive periods are converted to the ellipsis character:
+
+~~~~ markdown
+Wait for it...    →    Wait for it…
+~~~~
+
+Four or more periods are preserved as-is.
+
+### Dashes
+
+Double hyphens are converted to em-dashes by default:
+
+~~~~ markdown
+Well--I think so.    →    Well—I think so.
+~~~~
+
+En-dashes can be enabled via configuration with a custom pattern.
+Single-hyphen patterns only match when surrounded by whitespace to avoid
+breaking hyphenated words:
+
+~~~~ markdown
+Pages 10 - 20    →    Pages 10 – 20    (when en_dash = "-")
+~~~~
+
+### Code preservation
+
+Punctuation transformations are never applied inside code spans or fenced
+code blocks.  This ensures that code examples remain syntactically correct:
+
+~~~~ markdown
+Use `"string"` for text.    →    Use `"string"` for text.
+~~~~
+
+
 Special elements
 ----------------
 

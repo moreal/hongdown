@@ -7,6 +7,7 @@ mod escape;
 mod inline;
 mod link;
 mod list;
+pub mod punctuation;
 mod state;
 mod table;
 mod wrap;
