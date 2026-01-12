@@ -277,6 +277,32 @@ See *[STYLE.md](./STYLE.md)* for the complete style specification, including
 the philosophy behind these conventions and detailed formatting rules.
 
 
+Editor integrations
+-------------------
+
+### Zed
+
+Add the following to your Zed settings to use Hongdown as the Markdown
+formatter (contributed by [Lee Dogeon][moreal zed]):
+
+~~~~ json
+{
+  "languages": {
+    "Markdown": {
+      "formatter": {
+        "external": {
+          "command": "hongdown",
+          "arguments": ["-"]
+        }
+      }
+    }
+  }
+}
+~~~~
+
+[moreal zed]: https://hackers.pub/@moreal/019bb141-dc94-7103-ab3d-779941125430
+
+
 Library usage
 -------------
 
