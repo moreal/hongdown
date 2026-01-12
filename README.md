@@ -6,7 +6,7 @@ Hongdown
 [![GitHub Actions][GitHub Actions badge]][GitHub Actions]
 
 Hongdown is a Markdown formatter that enforces [Hong Minhee's Markdown
-style](./STYLE.md) conventions.  The formatter is implemented in Rust using
+style conventions](./STYLE.md).  The formatter is implemented in Rust using
 the [Comrak] library for parsing.  It produces consistently formatted Markdown
 output following a distinctive style used across multiple projects including
 [Fedify], [LogTape], and [Optique].
