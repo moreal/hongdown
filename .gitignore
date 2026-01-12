@@ -9,4 +9,5 @@ result
 
 # build artifacts
 /packages/wasm/dist/
+/demo/dist/
 node_modules/

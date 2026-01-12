@@ -222,6 +222,47 @@ jobs:
           packages/wasm/
           !packages/wasm/node_modules/
 
+  deploy-demo:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-wasm]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - uses: actions/checkout@v6
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: wasm32
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+    - uses: pnpm/action-setup@v4
+      with:
+        version: latest
+    - uses: actions/download-artifact@v6
+      with:
+        name: wasm-package
+        path: packages/wasm
+    - name: Install dependencies
+      run: pnpm install --no-frozen-lockfile
+    - name: Build Demo
+      run: pnpm --filter hongdown-demo build
+      env:
+        GITHUB_ACTIONS: "true"
+    - uses: actions/configure-pages@v5
+    - uses: actions/upload-pages-artifact@v3
+      with:
+        path: demo/dist
+    - uses: actions/deploy-pages@v4
+      id: deployment
+
   release:
     if: github.event_name == 'push' && github.ref_type == 'tag'
     needs: [build, build-wasm]
