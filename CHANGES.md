@@ -6,6 +6,10 @@ Version 0.2.0
 
 To be released.
 
+ -  Added [`@hongdown/wasm`] package, a WebAssembly-based JavaScript/TypeScript
+    library.  This allows using Hongdown as a library in Node.js, Bun, Deno,
+    and web browsers.  [[#7]]
+
  -  Added SmartyPants-style punctuation transformation.  The formatter can now
     convert ASCII punctuation to typographically correct Unicode equivalents.
     Configurable via the `[punctuation]` section in _.hongdown.toml_:
@@ -32,9 +36,11 @@ To be released.
     argument, Hongdown now recursively finds all Markdown files (_\*.md_ and
     _\*.markdown_) within it.  [[#2]]
 
+[`@hongdown/wasm`]: https://www.npmjs.com/package/@hongdown/wasm
 [#2]: https://github.com/dahlia/hongdown/issues/2
 [#3]: https://github.com/dahlia/hongdown/pull/3
 [#5]: https://github.com/dahlia/hongdown/pull/5
+[#7]: https://github.com/dahlia/hongdown/issues/7
 
 
 Version 0.1.1
