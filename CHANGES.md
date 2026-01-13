@@ -4,7 +4,7 @@ Hongdown changelog
 Version 0.2.3
 -------------
 
-To be released.
+Released on January 13, 2026.
 
  -  Fixed a bug where proper nouns inside parentheses (e.g., “(Deno only)”) were
     incorrectly lowercased when `heading.sentence_case` was enabled.  The proper
