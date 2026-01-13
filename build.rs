@@ -28,11 +28,12 @@ fn main() {
             continue;
         }
 
-        // Generate lowercase key from canonical form
-        let canonical = line;
+        // Normalize apostrophes to curly form for consistent matching
+        // This matches the behavior of normalize_quotes() in the serializer
+        let canonical = line.replace('\'', "\u{2019}");
         let lowercase_key = canonical.to_lowercase();
 
-        proper_nouns.push((canonical.to_string(), lowercase_key));
+        proper_nouns.push((canonical, lowercase_key));
     }
 
     // Generate Rust code

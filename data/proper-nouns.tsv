@@ -118,19 +118,331 @@ Mocha
 Pytest
 RSpec
 
-# Languages and locales
+# Natural languages
+Afrikaans
+Albanian
+Amharic
 Arabic
+Armenian
+Assamese
+Azerbaijani
+Bangla
+Basque
+Belarusian
+Bengali
+Bosnian
+Bulgarian
+Burmese
+Catalan
 Chinese
+Croatian
+Czech
+Danish
+Dutch
 English
+Estonian
+Filipino
+Finnish
 French
+Galician
+Georgian
 German
+Greek
+Gujarati
+Hausa
+Hebrew
 Hindi
+Hungarian
+Icelandic
+Indonesian
+Irish
 Italian
 Japanese
+Javanese
+Kannada
+Kazakh
+Khmer
 Korean
+Kurdish
+Kyrgyz
+Lao
+Latvian
+Lithuanian
+Macedonian
+Malay
+Malayalam
+Maltese
+Mandarin
+Marathi
+Mongolian
+Nepali
+Norwegian
+Odia
+Pashto
+Persian
+Polish
 Portuguese
+Punjabi
+Romanian
 Russian
+Sanskrit
+Serbian
+Shona
+Sindhi
+Sinhala
+Slovak
+Slovenian
+Somali
 Spanish
+Sundanese
+Swahili
+Swedish
+Tagalog
+Tajik
+Tamil
+Tatar
+Telugu
+Thai
+Tibetan
+Turkish
+Turkmen
+Ukrainian
+Urdu
+Uyghur
+Uzbek
+Vietnamese
+Welsh
+Xhosa
+Yiddish
+Yoruba
+Zulu
+
+# Countries and regions (including official names and special administrative regions)
+Afghanistan
+Albania
+Algeria
+Andorra
+Angola
+Argentina
+Armenia
+Australia
+Austria
+Azerbaijan
+Bahamas
+Bahrain
+Bangladesh
+Barbados
+Belarus
+Belgium
+Belize
+Benin
+Bhutan
+Bolivia
+Bosnia and Herzegovina
+Botswana
+Brazil
+Brunei
+Bulgaria
+Burkina Faso
+Burundi
+Cambodia
+Cameroon
+Canada
+Chad
+Chile
+China
+People's Republic of China
+Republic of China
+PRC
+ROC
+Colombia
+Comoros
+Costa Rica
+Croatia
+Cuba
+Cyprus
+Czechia
+Denmark
+Djibouti
+Dominica
+Ecuador
+Egypt
+El Salvador
+Eritrea
+Estonia
+Eswatini
+Ethiopia
+Fiji
+Finland
+France
+French Republic
+Gabon
+Gambia
+Georgia
+Germany
+Federal Republic of Germany
+Ghana
+Greece
+Grenada
+Guatemala
+Guinea
+Guyana
+Haiti
+Honduras
+Hungary
+Iceland
+India
+Indonesia
+Iran
+Iraq
+Ireland
+Israel
+Italy
+Jamaica
+Japan
+State of Japan
+Jordan
+Kazakhstan
+Kenya
+Kiribati
+Korea
+Republic of Korea
+Democratic People's Republic of Korea
+ROK
+DPRK
+Kosovo
+Kuwait
+Kyrgyzstan
+Laos
+Latvia
+Lebanon
+Lesotho
+Liberia
+Libya
+Liechtenstein
+Lithuania
+Luxembourg
+Madagascar
+Malawi
+Malaysia
+Maldives
+Mali
+Malta
+Mauritania
+Mauritius
+Mexico
+Micronesia
+Moldova
+Monaco
+Mongolia
+Montenegro
+Morocco
+Mozambique
+Myanmar
+Namibia
+Nauru
+Nepal
+Netherlands
+New Zealand
+Nicaragua
+Niger
+Nigeria
+North Korea
+North Macedonia
+Norway
+Oman
+Pakistan
+Palau
+Palestine
+Panama
+Papua New Guinea
+Paraguay
+Peru
+Philippines
+Poland
+Portugal
+Qatar
+Romania
+Russia
+Russian Federation
+Rwanda
+Samoa
+San Marino
+Saudi Arabia
+Senegal
+Serbia
+Seychelles
+Sierra Leone
+Singapore
+Slovakia
+Slovenia
+Somalia
+South Africa
+South Korea
+South Sudan
+Spain
+Sri Lanka
+Sudan
+Suriname
+Sweden
+Switzerland
+Syria
+Taiwan
+Tajikistan
+Tanzania
+Thailand
+Togo
+Tonga
+Trinidad and Tobago
+Tunisia
+Turkey
+Turkmenistan
+Tuvalu
+Uganda
+Ukraine
+United Arab Emirates
+UAE
+United Kingdom
+UK
+United States
+United States of America
+USA
+Uruguay
+Uzbekistan
+Vanuatu
+Vatican City
+Venezuela
+Vietnam
+Yemen
+Zambia
+Zimbabwe
+
+# Special administrative regions and territories
+Hong Kong
+Macau
+Puerto Rico
+Greenland
+Faroe Islands
+Gibraltar
+Bermuda
+Guam
+American Samoa
+Northern Mariana Islands
+U.S. Virgin Islands
+British Virgin Islands
+Cayman Islands
+Turks and Caicos Islands
+Aruba
+Curaçao
+French Polynesia
+New Caledonia
+Guadeloupe
+Martinique
+Réunion
+Mayotte
+French Guiana
+Saint Martin
+Saint Barthélemy
 
 # Other technologies
 CSV

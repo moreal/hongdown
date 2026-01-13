@@ -312,6 +312,19 @@ fn collect_multiword_proper_nouns(
     multiword_nouns
 }
 
+/// Normalize apostrophes for matching purposes.
+/// Converts both straight (') and curly (') apostrophes to a canonical form.
+fn normalize_apostrophes_for_matching(text: &str) -> String {
+    text.replace('\u{2019}', "'")
+}
+
+/// Check if two strings match ignoring case and apostrophe style.
+fn matches_ignoring_apostrophes(text: &str, pattern: &str) -> bool {
+    let text_normalized = normalize_apostrophes_for_matching(&text.to_lowercase());
+    let pattern_normalized = normalize_apostrophes_for_matching(&pattern.to_lowercase());
+    text_normalized == pattern_normalized
+}
+
 /// Replace multi-word proper nouns with placeholders.
 /// Returns (modified_text, replacements) where replacements is Vec of (placeholder, canonical_form).
 fn replace_multiword_with_placeholders(
@@ -323,43 +336,69 @@ fn replace_multiword_with_placeholders(
     let mut placeholder_counter = 0;
 
     for (canonical, search_key) in multiword_nouns {
-        // Case-insensitive search
+        // Case-insensitive search with apostrophe-aware matching
         let mut search_from = 0;
+        let search_key_len = search_key.chars().count();
+
         loop {
             let remaining = &result[search_from..];
-            let remaining_lower = remaining.to_lowercase();
+            let mut found = false;
+            let mut match_end_byte = search_from;
 
-            if let Some(pos) = remaining_lower.find(search_key) {
-                let actual_pos = search_from + pos;
-                let end_pos = actual_pos + search_key.len();
+            // Scan through the text to find a match
+            for (byte_pos, _) in remaining.char_indices() {
+                let substring_start = search_from + byte_pos;
 
-                // Check word boundaries
-                let is_word_start = actual_pos == 0
-                    || result[..actual_pos]
-                        .chars()
-                        .last()
-                        .map(|c| !c.is_alphanumeric())
-                        .unwrap_or(true);
-                let is_word_end = end_pos >= result.len()
-                    || result[end_pos..]
-                        .chars()
-                        .next()
-                        .map(|c| !c.is_alphanumeric())
-                        .unwrap_or(true);
-
-                if is_word_start && is_word_end {
-                    // Replace with placeholder
-                    let placeholder = format!("\u{FFFD}MULTIWORD_{}\u{FFFD}", placeholder_counter);
-                    replacements.push((placeholder.clone(), canonical.clone()));
-                    placeholder_counter += 1;
-
-                    result.replace_range(actual_pos..end_pos, &placeholder);
-                    search_from = actual_pos + placeholder.len();
-                } else {
-                    search_from = end_pos;
+                // Try to extract a substring of the same character length as search_key
+                let chars_from_here: Vec<char> = result[substring_start..]
+                    .chars()
+                    .take(search_key_len)
+                    .collect();
+                if chars_from_here.len() != search_key_len {
+                    break;
                 }
-            } else {
-                break;
+
+                let substring: String = chars_from_here.iter().collect();
+                if matches_ignoring_apostrophes(&substring, search_key) {
+                    let actual_pos = substring_start;
+                    let end_pos = substring_start + substring.len();
+                    match_end_byte = end_pos;
+
+                    // Check word boundaries
+                    let is_word_start = actual_pos == 0
+                        || result[..actual_pos]
+                            .chars()
+                            .last()
+                            .map(|c| !c.is_alphanumeric())
+                            .unwrap_or(true);
+                    let is_word_end = end_pos >= result.len()
+                        || result[end_pos..]
+                            .chars()
+                            .next()
+                            .map(|c| !c.is_alphanumeric())
+                            .unwrap_or(true);
+
+                    if is_word_start && is_word_end {
+                        // Replace with placeholder
+                        let placeholder =
+                            format!("\u{FFFD}MULTIWORD_{}\u{FFFD}", placeholder_counter);
+                        replacements.push((placeholder.clone(), canonical.clone()));
+                        placeholder_counter += 1;
+
+                        result.replace_range(actual_pos..end_pos, &placeholder);
+                        search_from = actual_pos + placeholder.len();
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if !found {
+                if match_end_byte > search_from {
+                    search_from = match_end_byte;
+                } else {
+                    break;
+                }
             }
         }
     }
@@ -515,32 +554,41 @@ fn is_acronym(word: &str) -> bool {
 
 /// Find a proper noun match (case-insensitive search).
 /// Returns None if the word is in the common_nouns list.
+/// Handles words with trailing punctuation (e.g., "France," matches "France").
 fn find_proper_noun(
     word: &str,
     user_proper_nouns: &[String],
     common_nouns: &[String],
 ) -> Option<String> {
-    let word_lower = word.to_lowercase();
+    // Strip trailing punctuation to find the core word
+    let core_word = word.trim_end_matches(|c: char| !c.is_alphanumeric());
+    let trailing_punct = &word[core_word.len()..];
+    let core_word_lower = core_word.to_lowercase();
+
+    // If no alphabetic characters remain, return None
+    if core_word.is_empty() || !core_word.chars().any(|c| c.is_alphabetic()) {
+        return None;
+    }
 
     // Check if it's in the common_nouns list (case-insensitive)
     // If so, treat it as a common noun, not a proper noun
     for common_noun in common_nouns {
-        if common_noun.to_lowercase() == word_lower {
+        if common_noun.to_lowercase() == core_word_lower {
             return None;
         }
     }
 
     // Check user proper nouns first
     for proper_noun in user_proper_nouns {
-        if proper_noun.to_lowercase() == word_lower {
-            return Some(proper_noun.clone());
+        if proper_noun.to_lowercase() == core_word_lower {
+            return Some(format!("{}{}", proper_noun, trailing_punct));
         }
     }
 
     // Check built-in proper nouns (excluding those in common_nouns)
     for (canonical, key) in PROPER_NOUNS {
-        if *key == word_lower {
-            return Some(canonical.to_string());
+        if *key == core_word_lower {
+            return Some(format!("{}{}", canonical, trailing_punct));
         }
     }
 
@@ -961,6 +1009,127 @@ mod tests {
         assert_eq!(
             to_sentence_case("MyGitHub Actions Service", &[], &[]),
             "Mygithub actions service"
+        );
+    }
+
+    #[test]
+    fn test_natural_language_names_preserved() {
+        // Natural language names should be preserved
+        assert_eq!(
+            to_sentence_case("Learning Korean And Japanese", &[], &[]),
+            "Learning Korean and Japanese"
+        );
+        assert_eq!(
+            to_sentence_case("Translating From English To French", &[], &[]),
+            "Translating from English to French"
+        );
+        assert_eq!(
+            to_sentence_case("Guide To Vietnamese And Thai", &[], &[]),
+            "Guide to Vietnamese and Thai"
+        );
+    }
+
+    #[test]
+    fn test_country_names_preserved() {
+        // Country names should be preserved
+        assert_eq!(
+            to_sentence_case("Traveling Through Japan And Korea", &[], &[]),
+            "Traveling through Japan and Korea"
+        );
+        assert_eq!(
+            to_sentence_case("From United States To Canada", &[], &[]),
+            "From United States to Canada"
+        );
+        // Test individual country names first
+        assert_eq!(
+            to_sentence_case("Visiting France", &[], &[]),
+            "Visiting France"
+        );
+        assert_eq!(
+            to_sentence_case("Visiting Germany", &[], &[]),
+            "Visiting Germany"
+        );
+        assert_eq!(
+            to_sentence_case("Visiting Italy", &[], &[]),
+            "Visiting Italy"
+        );
+        assert_eq!(
+            to_sentence_case("Visiting France, Germany, And Italy", &[], &[]),
+            "Visiting France, Germany, and Italy"
+        );
+    }
+
+    #[test]
+    fn test_multiword_country_names() {
+        // Multi-word country names should be preserved
+        assert_eq!(
+            to_sentence_case("New Zealand Travel Guide", &[], &[]),
+            "New Zealand travel guide"
+        );
+        assert_eq!(
+            to_sentence_case("South Korea And North Korea", &[], &[]),
+            "South Korea and North Korea"
+        );
+        assert_eq!(
+            to_sentence_case("United Kingdom History", &[], &[]),
+            "United Kingdom history"
+        );
+    }
+
+    #[test]
+    fn test_official_country_names() {
+        // Official country names should be preserved
+        assert_eq!(
+            to_sentence_case("Republic Of Korea Development", &[], &[]),
+            "Republic of Korea development"
+        );
+        // Test with straight apostrophe - should be normalized to curly and matched
+        let result = to_sentence_case("People's Republic Of China", &[], &[]);
+        println!("Result: {}", result);
+        println!("Expected: People\u{2019}s Republic of China");
+        assert_eq!(result, "People\u{2019}s Republic of China");
+    }
+
+    #[test]
+    fn test_special_regions() {
+        // Special administrative regions should be preserved
+        assert_eq!(
+            to_sentence_case("Hong Kong Travel Guide", &[], &[]),
+            "Hong Kong travel guide"
+        );
+        assert_eq!(
+            to_sentence_case("Visiting Macau And Hong Kong", &[], &[]),
+            "Visiting Macau and Hong Kong"
+        );
+        assert_eq!(
+            to_sentence_case("Puerto Rico History", &[], &[]),
+            "Puerto Rico history"
+        );
+    }
+
+    #[test]
+    fn test_full_country_names_and_abbreviations() {
+        // Full country names should be preserved
+        assert_eq!(
+            to_sentence_case("United States Of America History", &[], &[]),
+            "United States of America history"
+        );
+        assert_eq!(
+            to_sentence_case("Federal Republic Of Germany", &[], &[]),
+            "Federal Republic of Germany"
+        );
+        assert_eq!(
+            to_sentence_case("Russian Federation Development", &[], &[]),
+            "Russian Federation development"
+        );
+        // Abbreviations should be preserved as acronyms
+        assert_eq!(
+            to_sentence_case("USA And UK Relations", &[], &[]),
+            "USA and UK relations"
+        );
+        assert_eq!(
+            to_sentence_case("ROK And DPRK Summit", &[], &[]),
+            "ROK and DPRK summit"
         );
     }
 }
