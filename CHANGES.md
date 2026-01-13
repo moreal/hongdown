@@ -4,7 +4,7 @@ Hongdown changelog
 Version 0.2.2
 -------------
 
-To be released.
+Released on January 13, 2026.
 
  -  Fixed a bug where possessive apostrophes after link references (e.g.,
     `[Fedify]'s`) were incorrectly converted to curly apostrophes even when
