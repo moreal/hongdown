@@ -20,6 +20,14 @@ To be released.
     the code span when `heading.sentence_case` was enabled.  Now the code span
     counts as the first word, so subsequent words are correctly lowercased.
 
+ -  Fixed a bug where the English first-person pronoun “I” was incorrectly
+    lowercased when `heading.sentence_case` was enabled.  The pronoun “I” and
+    its contractions (I'm, I've, I'll, I'd) are now always capitalized
+    regardless of their position in the heading.
+
+ -  Fixed en dash (–) handling in `heading.sentence_case` mode.  En dash is
+    now treated as a word delimiter like em dash (—), colon, and semicolon.
+
 
 Version 0.2.1
 -------------
