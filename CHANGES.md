@@ -4,7 +4,7 @@ Hongdown changelog
 Version 0.2.4
 -------------
 
-To be released.
+Released on January 14, 2026.
 
  -  Fixed a bug where definition lists with a list (ordered or unordered) as
     the first block element would produce non-idempotent output.  The formatter
