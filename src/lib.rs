@@ -11,6 +11,8 @@
 //! let output = format(input, &options).unwrap();
 //! ```
 
+use std::collections::HashMap;
+
 pub mod config;
 mod serializer;
 
@@ -22,6 +24,15 @@ pub use serializer::Warning;
 pub use serializer::punctuation::{PunctuationError, validate_dash_settings};
 
 use comrak::{Arena, Options as ComrakOptions, parse_document};
+
+/// External code formatter configuration.
+#[derive(Debug, Clone)]
+pub struct CodeFormatter {
+    /// Command and arguments as a vector.
+    pub command: Vec<String>,
+    /// Timeout in seconds.
+    pub timeout_secs: u64,
+}
 
 /// Formatting options for the Markdown formatter.
 #[derive(Debug, Clone)]
@@ -118,6 +129,19 @@ pub struct Options {
     /// Set to `Disabled` to disable, or a string like `"---"` for a different pattern.
     /// The pattern is replaced with `—` (U+2014).
     pub em_dash: DashSetting,
+
+    /// External code formatters by language.
+    ///
+    /// Key: language identifier (exact match only).
+    /// Value: formatter configuration with command and timeout.
+    ///
+    /// When a code block with a matching language is encountered, the formatter
+    /// command is executed with the code content passed via stdin. The formatted
+    /// output is read from stdout.
+    ///
+    /// If the formatter fails (non-zero exit, timeout, etc.), the original code
+    /// is preserved and a warning is emitted.
+    pub code_formatters: HashMap<String, CodeFormatter>,
 }
 
 impl Default for Options {
@@ -151,6 +175,7 @@ impl Default for Options {
             ellipsis: true,
             en_dash: DashSetting::Disabled,
             em_dash: DashSetting::Pattern("--".to_string()),
+            code_formatters: HashMap::new(),
         }
     }
 }

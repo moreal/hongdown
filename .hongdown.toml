@@ -7,3 +7,9 @@ proper_nouns = [
   "Hong Minhee",
   "mise",
 ]
+
+[code_block.formatters]
+javascript = ["deno", "fmt", "--ext=js", "-"]
+json = ["deno", "fmt", "--ext=jsonc", "-"]
+jsonc = ["deno", "fmt", "--ext=jsonc", "-"]
+typescript = ["deno", "fmt", "--ext=ts", "-"]

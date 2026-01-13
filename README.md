@@ -201,6 +201,10 @@ min_fence_length = 4      # Minimum fence length (default: 4)
 space_after_fence = true  # Space between fence and language (default: true)
 default_language = ""     # Default language for code blocks (default: "")
 
+# External code formatters (see "External code formatters" section)
+[code_block.formatters]
+# javascript = ["deno", "fmt", "--ext=js", "-"]
+
 [thematic_break]
 style = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
 leading_spaces = 3        # Leading spaces (0-3, default: 3)
@@ -328,6 +332,48 @@ fn main() {
 }
 ~~~~
 ~~~~~
+
+### External code formatters
+
+You can configure external formatters for code blocks in your *.hongdown.toml*.
+This allows automatic formatting of embedded code using language-specific tools.
+
+~~~~ toml
+[code_block.formatters]
+# Simple format: command as array
+javascript = ["deno", "fmt", "--ext=js", "-"]
+typescript = ["deno", "fmt", "--ext=ts", "-"]
+rust = ["rustfmt"]
+
+# With custom timeout (default is 5 seconds)
+[code_block.formatters.python]
+command = ["black", "-"]
+timeout = 10
+~~~~
+
+Behavior:
+
+ -  Language matching is exact only (`javascript` matches `javascript`, not `js`)
+ -  Code is passed to the formatter via stdin, formatted output read from stdout
+ -  If the formatter fails (non-zero exit, timeout, etc.), the original code is
+    preserved and a warning is emitted
+ -  External formatters are only available in CLI mode (not in WASM)
+
+For WASM builds, use the `formatWithCodeFormatter` function with a callback:
+
+~~~~ typescript
+import { formatWithCodeFormatter } from "@hongdown/wasm";
+import * as prettier from "prettier";
+
+const { output, warnings } = await formatWithCodeFormatter(markdown, {
+  codeFormatter: (language, code) => {
+    if (language === "javascript" || language === "typescript") {
+      return prettier.format(code, { parser: "babel" });
+    }
+    return null; // Keep original for other languages
+  },
+});
+~~~~
 
 ### Line wrapping
 

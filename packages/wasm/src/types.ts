@@ -195,6 +195,56 @@ export interface FormatOptions {
 }
 
 /**
+ * Callback function for formatting code blocks.
+ *
+ * The callback receives the language identifier and code content,
+ * and should return the formatted code or null/undefined to keep the original.
+ *
+ * @param language - The language identifier of the code block (e.g., "javascript", "python")
+ * @param code - The code content to format
+ * @returns The formatted code, or null/undefined to keep the original
+ *
+ * @example
+ * ```typescript
+ * const codeFormatter: CodeFormatterCallback = (language, code) => {
+ *   if (language === "javascript") {
+ *     return prettier.format(code, { parser: "babel" });
+ *   }
+ *   return null; // Keep original for other languages
+ * };
+ * ```
+ */
+export type CodeFormatterCallback = (
+  language: string,
+  code: string,
+) => string | null | undefined;
+
+/**
+ * Formatting options with an optional code formatter callback.
+ */
+export interface FormatWithCodeFormatterOptions extends FormatOptions {
+  /**
+   * Optional callback to format code blocks.
+   *
+   * When provided, this callback is called for each code block with a language identifier.
+   * Return the formatted code, or null/undefined to keep the original content.
+   *
+   * @example
+   * ```typescript
+   * const options = {
+   *   codeFormatter: (language, code) => {
+   *     if (language === "javascript") {
+   *       return prettier.format(code, { parser: "babel" });
+   *     }
+   *     return null;
+   *   },
+   * };
+   * ```
+   */
+  codeFormatter?: CodeFormatterCallback;
+}
+
+/**
  * A warning generated during formatting.
  */
 export interface Warning {

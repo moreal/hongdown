@@ -294,6 +294,91 @@ pub fn format_with_warnings(input: &str, options: JsValue) -> Result<JsValue, Js
     serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))
 }
 
+/// Format Markdown with an optional code formatter callback.
+///
+/// # Arguments
+///
+/// * `input` - Markdown source to format
+/// * `options` - Optional formatting options as a JavaScript object
+/// * `code_formatter` - Optional JavaScript callback function `(language: string, code: string) => string | null`
+///   that formats code blocks. Return the formatted code, or null/undefined to keep the original.
+///
+/// # Returns
+///
+/// An object with `output` (formatted string) and `warnings` (array of warning objects).
+#[wasm_bindgen(js_name = formatWithCodeFormatter)]
+pub fn format_with_code_formatter(
+    input: &str,
+    options: JsValue,
+    code_formatter: Option<js_sys::Function>,
+) -> Result<JsValue, JsError> {
+    use comrak::{Arena, Options as ComrakOptions, parse_document};
+
+    let js_opts: JsOptions = if options.is_undefined() || options.is_null() {
+        JsOptions::default()
+    } else {
+        serde_wasm_bindgen::from_value(options).map_err(|e| JsError::new(&e.to_string()))?
+    };
+
+    let opts = js_opts.to_options();
+
+    if input.is_empty() {
+        let js_result = JsFormatResult {
+            output: String::new(),
+            warnings: Vec::new(),
+        };
+        return serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()));
+    }
+
+    let arena = Arena::new();
+    let mut comrak_options = ComrakOptions::default();
+    comrak_options.extension.front_matter_delimiter = Some("---".to_string());
+    comrak_options.extension.table = true;
+    comrak_options.extension.description_lists = true;
+    comrak_options.extension.alerts = true;
+    comrak_options.extension.footnotes = true;
+    comrak_options.extension.tasklist = true;
+
+    let root = parse_document(&arena, input, &comrak_options);
+
+    // Create callback closure if provided
+    let callback: crate::serializer::CodeFormatterCallback = code_formatter.map(|func| {
+        Box::new(move |language: &str, code: &str| -> Option<String> {
+            let this = JsValue::null();
+            let lang_js = JsValue::from_str(language);
+            let code_js = JsValue::from_str(code);
+
+            match func.call2(&this, &lang_js, &code_js) {
+                Ok(result) => {
+                    if result.is_null() || result.is_undefined() {
+                        None
+                    } else {
+                        result.as_string()
+                    }
+                }
+                Err(_) => None,
+            }
+        }) as Box<dyn Fn(&str, &str) -> Option<String>>
+    });
+
+    let result =
+        crate::serializer::serialize_with_code_formatter(root, &opts, Some(input), callback);
+
+    let js_result = JsFormatResult {
+        output: result.output,
+        warnings: result
+            .warnings
+            .into_iter()
+            .map(|w| JsWarning {
+                line: w.line,
+                message: w.message,
+            })
+            .collect(),
+    };
+
+    serde_wasm_bindgen::to_value(&js_result).map_err(|e| JsError::new(&e.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

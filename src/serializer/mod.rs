@@ -4,6 +4,8 @@ mod block;
 mod code;
 mod document;
 mod escape;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod formatter;
 pub mod heading;
 mod inline;
 mod link;
@@ -13,6 +15,8 @@ mod state;
 mod table;
 mod wrap;
 
+#[cfg(feature = "wasm")]
+pub use state::CodeFormatterCallback;
 pub use state::{ReferenceLink, Serializer, Warning};
 
 use comrak::nodes::{AstNode, NodeValue};
@@ -48,6 +52,29 @@ pub fn serialize_with_source_and_warnings<'a>(
     let source_lines: Vec<&str> = source.map(|s| s.lines().collect()).unwrap_or_default();
     let source_ends_with_newline = source.is_some_and(|s| s.ends_with('\n'));
     let mut serializer = Serializer::new(options, source_lines, source_ends_with_newline);
+    serializer.serialize_node(node);
+    SerializeResult {
+        output: serializer.output,
+        warnings: serializer.warnings,
+    }
+}
+
+/// Serializes with a code formatter callback (WASM only).
+#[cfg(feature = "wasm")]
+pub fn serialize_with_code_formatter<'a>(
+    node: &'a AstNode<'a>,
+    options: &Options,
+    source: Option<&str>,
+    code_formatter: CodeFormatterCallback,
+) -> SerializeResult {
+    let source_lines: Vec<&str> = source.map(|s| s.lines().collect()).unwrap_or_default();
+    let source_ends_with_newline = source.is_some_and(|s| s.ends_with('\n'));
+    let mut serializer = Serializer::with_code_formatter_callback(
+        options,
+        source_lines,
+        source_ends_with_newline,
+        code_formatter,
+    );
     serializer.serialize_node(node);
     SerializeResult {
         output: serializer.output,

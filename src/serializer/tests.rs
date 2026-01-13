@@ -3679,3 +3679,161 @@ fn test_heading_sentence_case_non_latin() {
         "\u{D55C}\u{AE00} \u{C81C}\u{BAA9} with English\n======================\n"
     );
 }
+
+// ============================================================================
+// Code block formatter tests
+// ============================================================================
+
+fn parse_and_serialize_with_options_and_warnings(
+    input: &str,
+    format_options: &Options,
+) -> SerializeResult {
+    let arena = Arena::new();
+    let options = comrak_options();
+    let root = parse_document(&arena, input, &options);
+    serialize_with_source_and_warnings(root, format_options, Some(input))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_code_block_with_formatter_success() {
+    use crate::CodeFormatter;
+
+    // Use 'cat' as a simple formatter that returns input unchanged
+    let mut options = Options::default();
+    options.code_formatters.insert(
+        "text".to_string(),
+        CodeFormatter {
+            command: vec!["cat".to_string()],
+            timeout_secs: 5,
+        },
+    );
+
+    let input = "~~~~ text\nhello world\n~~~~\n";
+    let result = parse_and_serialize_with_options(input, &options);
+    assert_eq!(result, "~~~~ text\nhello world\n~~~~\n");
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_code_block_formatter_transforms_content() {
+    use crate::CodeFormatter;
+
+    // Use 'tr' to uppercase the content
+    let mut options = Options::default();
+    options.code_formatters.insert(
+        "upper".to_string(),
+        CodeFormatter {
+            command: vec!["tr".to_string(), "a-z".to_string(), "A-Z".to_string()],
+            timeout_secs: 5,
+        },
+    );
+
+    let input = "~~~~ upper\nhello world\n~~~~\n";
+    let result = parse_and_serialize_with_options(input, &options);
+    assert_eq!(result, "~~~~ upper\nHELLO WORLD\n~~~~\n");
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_code_block_formatter_failure_preserves_original() {
+    use crate::CodeFormatter;
+
+    let mut options = Options::default();
+    options.code_formatters.insert(
+        "text".to_string(),
+        CodeFormatter {
+            command: vec!["false".to_string()], // always fails
+            timeout_secs: 5,
+        },
+    );
+
+    let input = "~~~~ text\nhello world\n~~~~\n";
+    let result = parse_and_serialize_with_options_and_warnings(input, &options);
+    // Original content should be preserved
+    assert_eq!(result.output, "~~~~ text\nhello world\n~~~~\n");
+    // Warning should be generated
+    assert!(!result.warnings.is_empty());
+    assert!(result.warnings[0].message.contains("failed"));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_code_block_no_formatter_for_language() {
+    let options = Options::default(); // no formatters configured
+
+    let input = "~~~~ rust\nfn main() {}\n~~~~\n";
+    let result = parse_and_serialize_with_options(input, &options);
+    // Content should be unchanged
+    assert_eq!(result, "~~~~ rust\nfn main() {}\n~~~~\n");
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_code_block_formatter_exact_language_match() {
+    use crate::CodeFormatter;
+
+    let mut options = Options::default();
+    options.code_formatters.insert(
+        "javascript".to_string(),
+        CodeFormatter {
+            command: vec!["tr".to_string(), "a-z".to_string(), "A-Z".to_string()],
+            timeout_secs: 5,
+        },
+    );
+
+    // 'js' should NOT match 'javascript' formatter
+    let input = "~~~~ js\nhello\n~~~~\n";
+    let result = parse_and_serialize_with_options(input, &options);
+    // Content should be unchanged because 'js' != 'javascript'
+    assert_eq!(result, "~~~~ js\nhello\n~~~~\n");
+
+    // 'javascript' should match
+    let input2 = "~~~~ javascript\nhello\n~~~~\n";
+    let result2 = parse_and_serialize_with_options(input2, &options);
+    assert_eq!(result2, "~~~~ javascript\nHELLO\n~~~~\n");
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_code_block_formatter_timeout() {
+    use crate::CodeFormatter;
+
+    let mut options = Options::default();
+    options.code_formatters.insert(
+        "slow".to_string(),
+        CodeFormatter {
+            command: vec!["sleep".to_string(), "10".to_string()],
+            timeout_secs: 1,
+        },
+    );
+
+    let input = "~~~~ slow\nhello\n~~~~\n";
+    let result = parse_and_serialize_with_options_and_warnings(input, &options);
+    // Original content should be preserved
+    assert_eq!(result.output, "~~~~ slow\nhello\n~~~~\n");
+    // Warning should be generated
+    assert!(!result.warnings.is_empty());
+    assert!(result.warnings[0].message.contains("timed out"));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_code_block_formatter_with_default_language() {
+    use crate::CodeFormatter;
+
+    let mut options = Options::default();
+    options.default_language = "text".to_string();
+    options.code_formatters.insert(
+        "text".to_string(),
+        CodeFormatter {
+            command: vec!["tr".to_string(), "a-z".to_string(), "A-Z".to_string()],
+            timeout_secs: 5,
+        },
+    );
+
+    // Code block without language should use default_language and apply formatter
+    let input = "~~~~\nhello\n~~~~\n";
+    let result = parse_and_serialize_with_options(input, &options);
+    assert_eq!(result, "~~~~ text\nHELLO\n~~~~\n");
+}

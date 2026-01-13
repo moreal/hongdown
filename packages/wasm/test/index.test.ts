@@ -1,4 +1,4 @@
-import { format, formatWithWarnings } from "@hongdown/wasm";
+import { format, formatWithWarnings, formatWithCodeFormatter } from "@hongdown/wasm";
 import type { FormatOptions } from "@hongdown/wasm";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -148,6 +148,91 @@ describe("formatWithWarnings", () => {
       warnings.some((w) => w.message.toLowerCase().includes("column")),
       "Warning should mention columns",
     );
+  });
+});
+
+describe("formatWithCodeFormatter", () => {
+  it("returns output and warnings", async () => {
+    const input = "# Hello\n\n~~~~ js\ncode\n~~~~\n";
+    const result = await formatWithCodeFormatter(input);
+    assert.ok("output" in result, "Result should have output property");
+    assert.ok("warnings" in result, "Result should have warnings property");
+    assert.ok(Array.isArray(result.warnings), "Warnings should be an array");
+  });
+
+  it("formats code blocks with callback", async () => {
+    const input = "# Test\n\n~~~~ js\nhello\n~~~~\n";
+    const { output } = await formatWithCodeFormatter(input, {
+      codeFormatter: (language: string, code: string) => {
+        if (language === "js") {
+          return code.toUpperCase();
+        }
+        return null;
+      },
+    });
+    assert.ok(output.includes("HELLO"), "Code should be transformed");
+  });
+
+  it("preserves original code when callback returns null", async () => {
+    const input = "# Test\n\n~~~~ python\nhello\n~~~~\n";
+    const { output } = await formatWithCodeFormatter(input, {
+      codeFormatter: (language: string, _code: string) => {
+        if (language === "js") {
+          return "transformed";
+        }
+        return null; // Don't transform Python
+      },
+    });
+    assert.ok(output.includes("hello"), "Original code should be preserved");
+    assert.ok(
+      !output.includes("transformed"),
+      "Code should not be transformed",
+    );
+  });
+
+  it("works without callback", async () => {
+    const input = "# Test\n\n~~~~ js\ncode\n~~~~\n";
+    const { output } = await formatWithCodeFormatter(input);
+    assert.ok(output.includes("code"), "Code should be preserved");
+  });
+
+  it("passes correct language to callback", async () => {
+    const input = "~~~~ typescript\ncode\n~~~~\n";
+    let receivedLanguage = "";
+    await formatWithCodeFormatter(input, {
+      codeFormatter: (language: string, _code: string) => {
+        receivedLanguage = language;
+        return null;
+      },
+    });
+    assert.equal(receivedLanguage, "typescript", "Language should match");
+  });
+
+  it("passes correct code to callback", async () => {
+    const input = "~~~~ js\nconst x = 1;\n~~~~\n";
+    let receivedCode = "";
+    await formatWithCodeFormatter(input, {
+      codeFormatter: (_language: string, code: string) => {
+        receivedCode = code;
+        return null;
+      },
+    });
+    assert.equal(receivedCode, "const x = 1;\n", "Code should match");
+  });
+
+  it("accepts formatting options alongside callback", async () => {
+    const input = "# Test\n\n~~~~ js\ncode\n~~~~\n";
+    const { output } = await formatWithCodeFormatter(input, {
+      setextH1: false,
+      codeFormatter: (language: string, code: string) => {
+        if (language === "js") {
+          return code.toUpperCase();
+        }
+        return null;
+      },
+    });
+    assert.ok(output.startsWith("# Test"), "H1 should be ATX style");
+    assert.ok(output.includes("CODE"), "Code should be transformed");
   });
 });
 

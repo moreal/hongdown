@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::Parser;
 use hongdown::config::Config;
-use hongdown::{Options, format_with_warnings, validate_dash_settings};
+use hongdown::{CodeFormatter, Options, format_with_warnings, validate_dash_settings};
 use rayon::prelude::*;
 use similar::{ChangeTag, TextDiff};
 use walkdir::WalkDir;
@@ -81,7 +81,29 @@ fn main() -> ExitCode {
         ellipsis: config.punctuation.ellipsis,
         en_dash: config.punctuation.en_dash.clone(),
         em_dash: config.punctuation.em_dash.clone(),
+        code_formatters: config
+            .code_block
+            .formatters
+            .iter()
+            .map(|(lang, cfg)| {
+                (
+                    lang.clone(),
+                    CodeFormatter {
+                        command: cfg.command().to_vec(),
+                        timeout_secs: cfg.timeout(),
+                    },
+                )
+            })
+            .collect(),
     };
+
+    // Validate formatter configurations
+    for (lang, cfg) in &config.code_block.formatters {
+        if let Err(msg) = cfg.validate() {
+            eprintln!("Error: formatter for '{}': {}", lang, msg);
+            return ExitCode::FAILURE;
+        }
+    }
 
     // Warn if thematic_break.leading_spaces exceeds CommonMark limit
     if config.thematic_break.leading_spaces > 3 {

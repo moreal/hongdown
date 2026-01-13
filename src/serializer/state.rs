@@ -220,6 +220,13 @@ fn safe_str_slice(s: &str, start: usize, end: usize) -> &str {
     &s[safe_start..safe_end]
 }
 
+/// Code formatter callback type for WASM builds.
+///
+/// The callback receives the language identifier and code content,
+/// and should return the formatted code (or `None` to keep original).
+#[cfg(feature = "wasm")]
+pub type CodeFormatterCallback = Option<Box<dyn Fn(&str, &str) -> Option<String>>>;
+
 /// The main serializer state for converting comrak AST to formatted Markdown.
 pub struct Serializer<'a> {
     pub output: String,
@@ -268,6 +275,9 @@ pub struct Serializer<'a> {
     pub directive_proper_nouns: Vec<String>,
     /// Common nouns defined via directives for sentence case (merged with config)
     pub directive_common_nouns: Vec<String>,
+    /// Code formatter callback for WASM builds.
+    #[cfg(feature = "wasm")]
+    pub code_formatter_callback: CodeFormatterCallback,
 }
 
 impl<'a> Serializer<'a> {
@@ -299,6 +309,43 @@ impl<'a> Serializer<'a> {
             blockquote_entry_list_depth: 0,
             directive_proper_nouns: Vec::new(),
             directive_common_nouns: Vec::new(),
+            #[cfg(feature = "wasm")]
+            code_formatter_callback: None,
+        }
+    }
+
+    /// Create a new serializer with a code formatter callback (WASM only).
+    #[cfg(feature = "wasm")]
+    pub fn with_code_formatter_callback(
+        options: &'a Options,
+        source_lines: Vec<&'a str>,
+        source_ends_with_newline: bool,
+        callback: CodeFormatterCallback,
+    ) -> Self {
+        Self {
+            output: String::new(),
+            options,
+            source_lines,
+            list_item_index: 0,
+            list_type: None,
+            list_tight: true,
+            in_block_quote: false,
+            blockquote_prefix: String::new(),
+            pending_references: IndexMap::new(),
+            emitted_references: std::collections::HashSet::new(),
+            footnotes: FootnoteSet::new(),
+            list_depth: 0,
+            skip_mode: FormatSkipMode::None,
+            in_description_details: false,
+            warnings: Vec::new(),
+            ordered_list_max_items: 0,
+            source_ends_with_newline,
+            list_item_indent: String::new(),
+            blockquote_outer_indent: String::new(),
+            blockquote_entry_list_depth: 0,
+            directive_proper_nouns: Vec::new(),
+            directive_common_nouns: Vec::new(),
+            code_formatter_callback: callback,
         }
     }
 

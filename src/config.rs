@@ -5,8 +5,10 @@
 //! This module provides functionality for loading and parsing configuration
 //! files (`.hongdown.toml`) that control the formatter's behavior.
 
-use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+
+use serde::Deserialize;
 
 /// The default configuration file name.
 pub const CONFIG_FILE_NAME: &str = ".hongdown.toml";
@@ -163,6 +165,59 @@ impl Default for OrderedListConfig {
     }
 }
 
+/// Default timeout for external formatters in seconds.
+fn default_formatter_timeout() -> u64 {
+    5
+}
+
+/// External formatter configuration for a single language.
+///
+/// Can be specified in two formats:
+/// - Simple: `["command", "arg1", "arg2"]`
+/// - Full: `{ command = ["command", "arg1"], timeout = 10 }`
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum FormatterConfig {
+    /// Simple array format: `["deno", "fmt", "-"]`
+    Simple(Vec<String>),
+    /// Full format with command and options.
+    Full {
+        /// Command and arguments as a vector.
+        command: Vec<String>,
+        /// Timeout in seconds (default: 5).
+        #[serde(default = "default_formatter_timeout")]
+        timeout: u64,
+    },
+}
+
+impl FormatterConfig {
+    /// Get the command as a slice.
+    pub fn command(&self) -> &[String] {
+        match self {
+            FormatterConfig::Simple(cmd) => cmd,
+            FormatterConfig::Full { command, .. } => command,
+        }
+    }
+
+    /// Get the timeout in seconds.
+    pub fn timeout(&self) -> u64 {
+        match self {
+            FormatterConfig::Simple(_) => default_formatter_timeout(),
+            FormatterConfig::Full { timeout, .. } => *timeout,
+        }
+    }
+
+    /// Validate the configuration.
+    ///
+    /// Returns an error message if the configuration is invalid.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.command().is_empty() {
+            return Err("formatter command cannot be empty".to_string());
+        }
+        Ok(())
+    }
+}
+
 /// Code block formatting options.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(default)]
@@ -180,6 +235,12 @@ pub struct CodeBlockConfig {
     /// When empty, code blocks without a language identifier remain without one.
     /// Set to e.g. "text" to add a default language identifier.
     pub default_language: String,
+
+    /// External formatters for code blocks by language.
+    ///
+    /// Key: language identifier (exact match only).
+    /// Value: formatter configuration.
+    pub formatters: HashMap<String, FormatterConfig>,
 }
 
 impl Default for CodeBlockConfig {
@@ -189,6 +250,7 @@ impl Default for CodeBlockConfig {
             min_fence_length: 4,
             space_after_fence: true,
             default_language: String::new(),
+            formatters: HashMap::new(),
         }
     }
 }
@@ -945,6 +1007,115 @@ em_dash = "--"
         assert_eq!(
             config.punctuation.em_dash,
             DashSetting::Pattern("--".to_string())
+        );
+    }
+
+    #[test]
+    fn test_default_code_block_formatters() {
+        let config = Config::default();
+        assert!(config.code_block.formatters.is_empty());
+    }
+
+    #[test]
+    fn test_parse_formatter_simple() {
+        let config = Config::from_toml(
+            r#"
+[code_block.formatters]
+javascript = ["deno", "fmt", "-"]
+"#,
+        )
+        .unwrap();
+        let formatter = config.code_block.formatters.get("javascript").unwrap();
+        assert_eq!(formatter.command(), &["deno", "fmt", "-"]);
+        assert_eq!(formatter.timeout(), 5);
+    }
+
+    #[test]
+    fn test_parse_formatter_full() {
+        let config = Config::from_toml(
+            r#"
+[code_block.formatters.python]
+command = ["black", "-"]
+timeout = 10
+"#,
+        )
+        .unwrap();
+        let formatter = config.code_block.formatters.get("python").unwrap();
+        assert_eq!(formatter.command(), &["black", "-"]);
+        assert_eq!(formatter.timeout(), 10);
+    }
+
+    #[test]
+    fn test_parse_formatter_full_default_timeout() {
+        let config = Config::from_toml(
+            r#"
+[code_block.formatters.rust]
+command = ["rustfmt"]
+"#,
+        )
+        .unwrap();
+        let formatter = config.code_block.formatters.get("rust").unwrap();
+        assert_eq!(formatter.command(), &["rustfmt"]);
+        assert_eq!(formatter.timeout(), 5);
+    }
+
+    #[test]
+    fn test_parse_multiple_formatters() {
+        let config = Config::from_toml(
+            r#"
+[code_block.formatters]
+javascript = ["deno", "fmt", "-"]
+typescript = ["deno", "fmt", "-"]
+
+[code_block.formatters.python]
+command = ["black", "-"]
+timeout = 10
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.code_block.formatters.len(), 3);
+        assert!(config.code_block.formatters.contains_key("javascript"));
+        assert!(config.code_block.formatters.contains_key("typescript"));
+        assert!(config.code_block.formatters.contains_key("python"));
+    }
+
+    #[test]
+    fn test_formatter_empty_command_validation() {
+        let config = Config::from_toml(
+            r#"
+[code_block.formatters]
+javascript = []
+"#,
+        )
+        .unwrap();
+        assert!(
+            config
+                .code_block
+                .formatters
+                .get("javascript")
+                .unwrap()
+                .validate()
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn test_formatter_valid_command_validation() {
+        let config = Config::from_toml(
+            r#"
+[code_block.formatters]
+javascript = ["deno", "fmt", "-"]
+"#,
+        )
+        .unwrap();
+        assert!(
+            config
+                .code_block
+                .formatters
+                .get("javascript")
+                .unwrap()
+                .validate()
+                .is_ok()
         );
     }
 }

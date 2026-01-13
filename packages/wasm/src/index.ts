@@ -14,10 +14,18 @@
  * @packageDocumentation
  */
 
-import type { FormatOptions, FormatResult } from "./types.js";
+import type {
+  FormatOptions,
+  FormatResult,
+  FormatWithCodeFormatterOptions,
+} from "./types.js";
 // @ts-expect-error: Subpath import resolved by Node.js/bundler
 import { loadWasmBuffer } from "#wasm-loader";
-import init, { format as wasmFormat, formatWithWarnings as wasmFormatWithWarnings } from "../pkg/hongdown.js";
+import init, {
+  format as wasmFormat,
+  formatWithWarnings as wasmFormatWithWarnings,
+  formatWithCodeFormatter as wasmFormatWithCodeFormatter,
+} from "../pkg/hongdown.js";
 
 // Lazily initialized
 let initialized = false;
@@ -113,10 +121,50 @@ export async function formatWithWarnings(
   return wasmFormatWithWarnings(input, options) as FormatResult;
 }
 
+/**
+ * Format Markdown with an optional code formatter callback.
+ *
+ * This function allows you to provide a callback that formats code blocks
+ * using external formatters (e.g., Prettier, ESLint).
+ *
+ * @param input - Markdown source to format
+ * @param options - Formatting options with optional code formatter callback
+ * @returns Object with formatted output and any warnings
+ *
+ * @example
+ * ```typescript
+ * import { formatWithCodeFormatter } from "@hongdown/wasm";
+ * import * as prettier from "prettier";
+ *
+ * const { output, warnings } = await formatWithCodeFormatter(markdown, {
+ *   codeFormatter: (language, code) => {
+ *     if (language === "javascript" || language === "typescript") {
+ *       return prettier.format(code, { parser: "babel" });
+ *     }
+ *     return null; // Keep original for other languages
+ *   },
+ * });
+ * ```
+ */
+export async function formatWithCodeFormatter(
+  input: string,
+  options: FormatWithCodeFormatterOptions = {},
+): Promise<FormatResult> {
+  await ensureInitialized();
+  const { codeFormatter, ...restOptions } = options;
+  return wasmFormatWithCodeFormatter(
+    input,
+    restOptions,
+    codeFormatter ?? null,
+  ) as FormatResult;
+}
+
 // Re-export types
 export type {
+  CodeFormatterCallback,
   FormatOptions,
   FormatResult,
+  FormatWithCodeFormatterOptions,
   Warning,
   OrderedListPad,
   DashSetting,

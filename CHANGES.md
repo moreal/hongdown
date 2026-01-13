@@ -69,12 +69,46 @@ To be released.
     argument, Hongdown now recursively finds all Markdown files (_\*.md_ and
     _\*.markdown_) within it.  [[#2]]
 
+ -  Added external code formatter support for code blocks.  You can now
+    configure language-specific formatters in _.hongdown.toml_ to automatically
+    format code inside fenced code blocks.  [[#9]]
+
+    ~~~~ toml
+    [code_block.formatters]
+    javascript = ["deno", "fmt", "-"]
+    typescript = ["deno", "fmt", "-"]
+
+    [code_block.formatters.python]
+    command = ["black", "-"]
+    timeout = 10
+    ~~~~
+
+    Code is passed to the formatter via stdin, and the formatted output is read
+    from stdout.  If the formatter fails (non-zero exit, timeout, etc.), the
+    original code is preserved and a warning is emitted.
+
+    For WASM builds, use the `formatWithCodeFormatter` function with a callback:
+
+    ~~~~ typescript
+    import { formatWithCodeFormatter } from "@hongdown/wasm";
+
+    const { output } = await formatWithCodeFormatter(markdown, {
+      codeFormatter: (language, code) => {
+        if (language === "javascript") {
+          return prettier.format(code, { parser: "babel" });
+        }
+        return null;
+      },
+    });
+    ~~~~
+
 [`@hongdown/wasm`]: https://www.npmjs.com/package/@hongdown/wasm
 [#2]: https://github.com/dahlia/hongdown/issues/2
 [#3]: https://github.com/dahlia/hongdown/pull/3
 [#5]: https://github.com/dahlia/hongdown/pull/5
 [#7]: https://github.com/dahlia/hongdown/issues/7
 [#8]: https://github.com/dahlia/hongdown/issues/8
+[#9]: https://github.com/dahlia/hongdown/issues/9
 
 
 Version 0.1.1

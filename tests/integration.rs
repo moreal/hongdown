@@ -605,3 +605,147 @@ Some content.
         "Swift and Go should be proper nouns, Python should be common noun"
     );
 }
+
+// ============================================================================
+// Code block formatter integration tests
+// ============================================================================
+
+#[cfg(not(target_arch = "wasm32"))]
+mod code_formatter_tests {
+    use hongdown::{CodeFormatter, Options, format, format_with_warnings};
+    use std::collections::HashMap;
+
+    /// Test code formatter with a real external command (cat).
+    #[test]
+    fn test_code_formatter_integration() {
+        let mut formatters = HashMap::new();
+        formatters.insert(
+            "text".to_string(),
+            CodeFormatter {
+                command: vec!["cat".to_string()],
+                timeout_secs: 5,
+            },
+        );
+
+        let options = Options {
+            code_formatters: formatters,
+            ..Options::default()
+        };
+
+        let input = "~~~~ text\nhello world\n~~~~\n";
+        let result = format(input, &options).unwrap();
+        assert_eq!(result, "~~~~ text\nhello world\n~~~~\n");
+    }
+
+    /// Test code formatter transformation with tr command.
+    #[test]
+    fn test_code_formatter_transforms() {
+        let mut formatters = HashMap::new();
+        formatters.insert(
+            "upper".to_string(),
+            CodeFormatter {
+                command: vec!["tr".to_string(), "a-z".to_string(), "A-Z".to_string()],
+                timeout_secs: 5,
+            },
+        );
+
+        let options = Options {
+            code_formatters: formatters,
+            ..Options::default()
+        };
+
+        let input = "~~~~ upper\nhello world\n~~~~\n";
+        let result = format(input, &options).unwrap();
+        assert_eq!(result, "~~~~ upper\nHELLO WORLD\n~~~~\n");
+    }
+
+    /// Test code formatter failure preserves original content and emits warning.
+    #[test]
+    fn test_code_formatter_failure_warning() {
+        let mut formatters = HashMap::new();
+        formatters.insert(
+            "fail".to_string(),
+            CodeFormatter {
+                command: vec!["false".to_string()],
+                timeout_secs: 5,
+            },
+        );
+
+        let options = Options {
+            code_formatters: formatters,
+            ..Options::default()
+        };
+
+        let input = "~~~~ fail\noriginal content\n~~~~\n";
+        let result = format_with_warnings(input, &options).unwrap();
+
+        // Original content should be preserved
+        assert_eq!(result.output, "~~~~ fail\noriginal content\n~~~~\n");
+
+        // Warning should be emitted
+        assert!(!result.warnings.is_empty());
+        assert!(result.warnings[0].message.contains("failed"));
+    }
+
+    /// Test multiple code blocks with different languages.
+    #[test]
+    fn test_multiple_code_blocks() {
+        let mut formatters = HashMap::new();
+        formatters.insert(
+            "upper".to_string(),
+            CodeFormatter {
+                command: vec!["tr".to_string(), "a-z".to_string(), "A-Z".to_string()],
+                timeout_secs: 5,
+            },
+        );
+        // No formatter for "rust" - should preserve original
+
+        let options = Options {
+            code_formatters: formatters,
+            ..Options::default()
+        };
+
+        let input = r#"First block:
+
+~~~~ upper
+hello
+~~~~
+
+Second block:
+
+~~~~ rust
+fn main() {}
+~~~~
+"#;
+        let result = format(input, &options).unwrap();
+
+        // First block should be transformed
+        assert!(result.contains("HELLO"));
+        // Second block should be unchanged
+        assert!(result.contains("fn main() {}"));
+    }
+
+    /// Test code formatter with default_language.
+    #[test]
+    fn test_code_formatter_with_default_language() {
+        let mut formatters = HashMap::new();
+        formatters.insert(
+            "text".to_string(),
+            CodeFormatter {
+                command: vec!["tr".to_string(), "a-z".to_string(), "A-Z".to_string()],
+                timeout_secs: 5,
+            },
+        );
+
+        let options = Options {
+            default_language: "text".to_string(),
+            code_formatters: formatters,
+            ..Options::default()
+        };
+
+        // Code block without language should use default and apply formatter
+        let input = "~~~~\nhello\n~~~~\n";
+        let result = format(input, &options).unwrap();
+        assert_eq!(result, "~~~~ text\nHELLO\n~~~~\n");
+    }
+}
