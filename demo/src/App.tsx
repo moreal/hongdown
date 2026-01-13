@@ -1,11 +1,11 @@
 import { Component, createSignal, createEffect, onMount, Show } from "solid-js";
 import { formatWithWarnings, FormatOptions, Warning } from "@hongdown/wasm";
-import { SAMPLE_MARKDOWN } from "./sample";
+import sampleMarkdown from "./sample.md?raw";
 import { OptionsPanel } from "./components/Options";
 import { TabBar } from "./components/TabBar";
 
 const App: Component = () => {
-  const [input, setInput] = createSignal(SAMPLE_MARKDOWN);
+  const [input, setInput] = createSignal(sampleMarkdown);
   const [output, setOutput] = createSignal("");
   const [warnings, setWarnings] = createSignal<Warning[]>([]);
   const [options, setOptions] = createSignal<FormatOptions>({});

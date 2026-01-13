@@ -45,6 +45,16 @@ hongdown/
 │   └── wasm/             # WASM library package (@hongdown/wasm)
 │       ├── src/          # TypeScript wrapper source
 │       └── test/         # Tests for Node.js, Bun, Deno
+├── demo/                 # Web demo application (hongdown-demo)
+│   ├── src/
+│   │   ├── components/   # UI components (TabBar, Options, Inputs)
+│   │   ├── App.tsx       # Main application logic
+│   │   ├── index.tsx     # Entry point
+│   │   ├── sample.ts     # Sample Markdown content
+│   │   └── styles.css    # Custom styles (scrollbar, etc.)
+│   ├── index.html        # HTML template
+│   ├── vite.config.ts    # Vite configuration
+│   └── uno.config.ts     # UnoCSS configuration
 ├── pnpm-workspace.yaml   # pnpm workspace configuration
 └── package.json          # Root workspace package.json
 ~~~~
@@ -110,6 +120,35 @@ Test helper functions in *src/serializer/tests.rs*:
  -  `parse_and_serialize_with_source(input)` - Format with source context
     for directive support
  -  `parse_and_serialize_with_warnings(input)` - Format and capture warnings
+
+### Demo application
+
+The *demo/* directory contains a web-based playground for Hongdown.  To run
+the demo locally:
+
+~~~~ bash
+pnpm --filter hongdown-demo dev     # Start development server
+pnpm --filter hongdown-demo build   # Build for production
+~~~~
+
+The demo app uses:
+
+ -  *Solid.js* for reactive UI
+ -  *UnoCSS* for styling with atomic CSS
+ -  *Vite* for bundling and development
+ -  *@hongdown/wasm* for real-time Markdown formatting
+
+Design principles:
+
+ -  *Borderless design*: Visual hierarchy is established through background
+    color differences (e.g., `bg-neutral-50` vs `bg-white` in light mode)
+    rather than borders
+ -  *Responsive layout*: Desktop shows split-view (editor/output side-by-side),
+    mobile shows tabbed interface (Editor/Output/Warnings tabs)
+ -  *Dark mode*: Automatically respects system preferences via
+    `@media (prefers-color-scheme: dark)`
+
+When modifying the demo UI, verify changes in both light and dark modes.
 
 ### Formatting
 
