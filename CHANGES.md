@@ -4,7 +4,7 @@ Hongdown changelog
 Version 0.2.0
 -------------
 
-To be released.
+Released on January 13, 2026.
 
  -  Added [`@hongdown/wasm`] package, a WebAssembly-based JavaScript/TypeScript
     library.  This allows using Hongdown as a library in Node.js, Bun, Deno,
