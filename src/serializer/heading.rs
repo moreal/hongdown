@@ -68,59 +68,118 @@ enum Token {
     Text(String),
 }
 
-/// Normalize straight quotes to curly quotes.
-/// This is smart replacement - opening vs closing quotes.
-/// Apostrophes (single quotes between letters) are kept as straight quotes.
+/// Normalize straight quotes to curly quotes, following SmartyPants logic.
+/// Apostrophes are kept as straight quotes.
+/// This function applies transformations in the same order as SmartyPants:
+/// 1. Special cases (decade abbreviations, etc.)
+/// 2. Opening quotes
+/// 3. Closing quotes (but keep apostrophes as straight quotes)
+/// 4. Remaining quotes become opening quotes
 fn normalize_quotes(text: &str) -> String {
     let mut result = String::new();
     let chars: Vec<char> = text.chars().collect();
+    let len = chars.len();
 
-    for i in 0..chars.len() {
+    // Track if we have an unmatched opening single quote
+    let mut open_single_quote = false;
+
+    let mut i = 0;
+    while i < len {
         let ch = chars[i];
-        let prev_char = if i > 0 { Some(chars[i - 1]) } else { None };
-        let next_char = if i + 1 < chars.len() {
-            Some(chars[i + 1])
-        } else {
-            None
-        };
 
-        if ch == '"' {
-            // Check if it's an opening or closing quote
-            // Opening: at start, or after whitespace/punctuation
-            let is_opening = prev_char.is_none()
-                || prev_char
-                    .map(|c| c.is_whitespace() || c == '(' || c == '[')
-                    .unwrap_or(false);
-
-            if is_opening {
-                result.push('\u{201C}');
-            } else {
-                result.push('\u{201D}');
-            }
-        } else if ch == '\'' {
-            // Check if it's an apostrophe (between letters) or a quote
-            let is_apostrophe = prev_char.map(|c| c.is_alphabetic()).unwrap_or(false)
-                && next_char.map(|c| c.is_alphabetic()).unwrap_or(false);
-
-            if is_apostrophe {
-                // Keep apostrophe as straight quote
-                result.push('\'');
-            } else {
-                // Check if it's an opening or closing quote
-                let is_opening = prev_char.is_none()
-                    || prev_char
-                        .map(|c| c.is_whitespace() || c == '(' || c == '[')
-                        .unwrap_or(false);
-
-                if is_opening {
-                    result.push('\u{2018}');
-                } else {
-                    result.push('\u{2019}');
+        if ch == '\'' {
+            // Check for decade abbreviations: '80s, '90s
+            if i + 3 < len
+                && chars[i + 1].is_ascii_digit()
+                && chars[i + 2].is_ascii_digit()
+                && chars[i + 3] == 's'
+            {
+                // Check if at word boundary (start or after non-alphanumeric)
+                let at_boundary = i == 0 || !chars[i - 1].is_alphanumeric();
+                if at_boundary {
+                    // Keep as straight quote (apostrophe)
+                    result.push('\'');
+                    i += 1;
+                    continue;
                 }
             }
+
+            // Check for contractions: letter + ' + letter (let's, don't, it's)
+            if i > 0 && chars[i - 1].is_alphabetic() {
+                let next_is_letter = i + 1 < len && chars[i + 1].is_alphabetic();
+
+                // Check for 's specifically (possessive: letter + 's + word boundary)
+                let next_is_s_boundary = i + 1 < len
+                    && chars[i + 1] == 's'
+                    && (i + 2 == len || !chars[i + 2].is_alphanumeric());
+
+                if next_is_letter || next_is_s_boundary {
+                    // Keep as straight quote (apostrophe)
+                    result.push('\'');
+                    i += 1;
+                    continue;
+                }
+
+                // Check for word-final apostrophe (goin', diggin')
+                // Only if there's no unmatched opening quote
+                let next_is_space = i + 1 < len && chars[i + 1].is_whitespace();
+                if next_is_space && !open_single_quote {
+                    // Keep as straight quote (apostrophe)
+                    result.push('\'');
+                    i += 1;
+                    continue;
+                }
+            }
+
+            // Check for opening quote: whitespace + ' + word character
+            if i > 0
+                && (chars[i - 1].is_whitespace() || chars[i - 1] == '(' || chars[i - 1] == '[')
+                && i + 1 < len
+                && chars[i + 1].is_alphanumeric()
+            {
+                result.push('\u{2018}');
+                open_single_quote = true;
+                i += 1;
+                continue;
+            }
+
+            // Check for opening quote at start: start + ' + word character
+            if i == 0 && i + 1 < len && chars[i + 1].is_alphanumeric() {
+                result.push('\u{2018}');
+                open_single_quote = true;
+                i += 1;
+                continue;
+            }
+
+            // Otherwise, it's a closing quote
+            result.push('\u{2019}');
+            open_single_quote = false;
+        } else if ch == '"' {
+            // Check for opening quote: whitespace + " + word character
+            if i > 0
+                && (chars[i - 1].is_whitespace() || chars[i - 1] == '(' || chars[i - 1] == '[')
+                && i + 1 < len
+                && chars[i + 1].is_alphanumeric()
+            {
+                result.push('\u{201C}');
+                i += 1;
+                continue;
+            }
+
+            // Check for opening quote at start
+            if i == 0 && i + 1 < len && chars[i + 1].is_alphanumeric() {
+                result.push('\u{201C}');
+                i += 1;
+                continue;
+            }
+
+            // Otherwise, it's a closing quote
+            result.push('\u{201D}');
         } else {
             result.push(ch);
         }
+
+        i += 1;
     }
 
     result
@@ -1090,7 +1149,8 @@ mod tests {
 
     #[test]
     fn test_apostrophe_not_quote() {
-        // Apostrophes (between letters) should remain as straight quotes, not curly quotes
+        // Apostrophes should remain as straight quotes, not curly quotes
+        // This includes contractions (let's, don't) and word-final apostrophes (goin', diggin')
         assert_eq!(
             to_sentence_case("Let's Code With JavaScript", &[], &[]),
             "Let's code with JavaScript"
@@ -1103,9 +1163,19 @@ mod tests {
             to_sentence_case("Don't Use This", &[], &[]),
             "Don't use this"
         );
+        // Word-final apostrophes (goin', diggin') should also be apostrophes, not curly quotes
         assert_eq!(
             to_sentence_case("Let's Code In JavaScript And Diggin' It", &[], &[]),
-            "Let's code in JavaScript and diggin\u{2019} it"
+            "Let's code in JavaScript and diggin' it"
+        );
+        assert_eq!(
+            to_sentence_case("We're Goin' To The Store", &[], &[]),
+            "We're goin' to the store"
+        );
+        // Decade abbreviations
+        assert_eq!(
+            to_sentence_case("Music From The '80s And '90s", &[], &[]),
+            "Music from the '80s and '90s"
         );
     }
 
