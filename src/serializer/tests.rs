@@ -1943,7 +1943,7 @@ fn test_list_indent_width_default() {
 #[test]
 fn test_ordered_list_odd_level_marker() {
     let options = Options {
-        odd_level_marker: ')',
+        odd_level_marker: crate::OrderedMarker::Parenthesis,
         ..Options::default()
     };
     // trailing_spaces=2, so "N)  " format
@@ -1954,7 +1954,7 @@ fn test_ordered_list_odd_level_marker() {
 #[test]
 fn test_ordered_list_even_level_marker() {
     let options = Options {
-        even_level_marker: '.',
+        even_level_marker: crate::OrderedMarker::Period,
         ..Options::default()
     };
     // Nested ordered list (level 2)

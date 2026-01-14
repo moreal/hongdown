@@ -152,6 +152,28 @@ impl Default for UnorderedListConfig {
     }
 }
 
+/// Marker character for ordered lists.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Default)]
+pub enum OrderedMarker {
+    /// Period marker (`.`) - `1.`, `2.`, etc.
+    #[default]
+    #[serde(rename = ".")]
+    Period,
+    /// Parenthesis marker (`)`) - `1)`, `2)`, etc.
+    #[serde(rename = ")")]
+    Parenthesis,
+}
+
+impl OrderedMarker {
+    /// Get the character representation of this marker.
+    pub fn as_char(self) -> char {
+        match self {
+            Self::Period => '.',
+            Self::Parenthesis => ')',
+        }
+    }
+}
+
 /// Padding style for ordered list numbers.
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -168,10 +190,10 @@ pub enum OrderedListPad {
 #[serde(default)]
 pub struct OrderedListConfig {
     /// Marker style at odd nesting levels: `.` for `1.` (default: `.`).
-    pub odd_level_marker: char,
+    pub odd_level_marker: OrderedMarker,
 
     /// Marker style at even nesting levels: `)` for `1)` (default: `)`).
-    pub even_level_marker: char,
+    pub even_level_marker: OrderedMarker,
 
     /// Padding style for aligning numbers of different widths (default: `start`).
     pub pad: OrderedListPad,
@@ -183,8 +205,8 @@ pub struct OrderedListConfig {
 impl Default for OrderedListConfig {
     fn default() -> Self {
         Self {
-            odd_level_marker: '.',
-            even_level_marker: ')',
+            odd_level_marker: OrderedMarker::default(),
+            even_level_marker: OrderedMarker::Parenthesis,
             pad: OrderedListPad::Start,
             indent_width: 4,
         }
@@ -561,8 +583,11 @@ mod tests {
         assert_eq!(config.unordered_list.leading_spaces, 1);
         assert_eq!(config.unordered_list.trailing_spaces, 2);
         assert_eq!(config.unordered_list.indent_width, 4);
-        assert_eq!(config.ordered_list.odd_level_marker, '.');
-        assert_eq!(config.ordered_list.even_level_marker, ')');
+        assert_eq!(config.ordered_list.odd_level_marker, OrderedMarker::Period);
+        assert_eq!(
+            config.ordered_list.even_level_marker,
+            OrderedMarker::Parenthesis
+        );
         assert_eq!(config.ordered_list.pad, OrderedListPad::Start);
         assert_eq!(config.ordered_list.indent_width, 4);
         assert_eq!(config.code_block.fence_char, '~');
@@ -702,8 +727,11 @@ even_level_marker = "."
 "#,
         )
         .unwrap();
-        assert_eq!(config.ordered_list.odd_level_marker, ')');
-        assert_eq!(config.ordered_list.even_level_marker, '.');
+        assert_eq!(
+            config.ordered_list.odd_level_marker,
+            OrderedMarker::Parenthesis
+        );
+        assert_eq!(config.ordered_list.even_level_marker, OrderedMarker::Period);
         assert_eq!(config.ordered_list.pad, OrderedListPad::Start); // default
     }
 
@@ -1252,6 +1280,93 @@ unordered_marker = "1"
             r#"
 [unordered_list]
 unordered_marker = ""
+"#,
+        );
+        assert!(result.is_err());
+    }
+}
+
+#[cfg(test)]
+mod ordered_marker_tests {
+    use super::*;
+
+    #[test]
+    fn test_ordered_marker_default() {
+        let marker = OrderedMarker::default();
+        assert_eq!(marker, OrderedMarker::Period);
+        assert_eq!(marker.as_char(), '.');
+    }
+
+    #[test]
+    fn test_ordered_marker_period() {
+        let config = Config::from_toml(
+            r#"
+[ordered_list]
+odd_level_marker = "."
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.ordered_list.odd_level_marker, OrderedMarker::Period);
+        assert_eq!(config.ordered_list.odd_level_marker.as_char(), '.');
+    }
+
+    #[test]
+    fn test_ordered_marker_parenthesis() {
+        let config = Config::from_toml(
+            r#"
+[ordered_list]
+even_level_marker = ")"
+"#,
+        )
+        .unwrap();
+        assert_eq!(
+            config.ordered_list.even_level_marker,
+            OrderedMarker::Parenthesis
+        );
+        assert_eq!(config.ordered_list.even_level_marker.as_char(), ')');
+    }
+
+    #[test]
+    fn test_ordered_marker_invalid_hyphen() {
+        let result = Config::from_toml(
+            r#"
+[ordered_list]
+odd_level_marker = "-"
+"#,
+        );
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("odd_level_marker"));
+    }
+
+    #[test]
+    fn test_ordered_marker_invalid_asterisk() {
+        let result = Config::from_toml(
+            r#"
+[ordered_list]
+even_level_marker = "*"
+"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_ordered_marker_invalid_letter() {
+        let result = Config::from_toml(
+            r#"
+[ordered_list]
+odd_level_marker = "a"
+"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_ordered_marker_invalid_empty() {
+        let result = Config::from_toml(
+            r#"
+[ordered_list]
+odd_level_marker = ""
 "#,
         );
         assert!(result.is_err());

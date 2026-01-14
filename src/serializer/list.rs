@@ -136,9 +136,9 @@ impl<'a> Serializer<'a> {
             Some(ListType::Ordered) => {
                 // Determine marker based on nesting level (odd=1,3,5..., even=2,4,6...)
                 let marker = if self.list_depth % 2 == 1 {
-                    self.options.odd_level_marker
+                    self.options.odd_level_marker.as_char()
                 } else {
-                    self.options.even_level_marker
+                    self.options.even_level_marker.as_char()
                 };
 
                 let current_num = self.list_item_index.to_string();

@@ -19,7 +19,7 @@ mod serializer;
 #[cfg(feature = "wasm")]
 mod wasm;
 
-pub use config::{DashSetting, OrderedListPad, UnorderedMarker};
+pub use config::{DashSetting, OrderedListPad, OrderedMarker, UnorderedMarker};
 pub use serializer::Warning;
 pub use serializer::punctuation::{PunctuationError, validate_dash_settings};
 
@@ -71,11 +71,11 @@ pub struct Options {
 
     /// Marker style for ordered lists at odd nesting levels (1st, 3rd, etc.).
     /// Use `.` for `1.` or `)` for `1)`. Default: `.`.
-    pub odd_level_marker: char,
+    pub odd_level_marker: OrderedMarker,
 
     /// Marker style for ordered lists at even nesting levels (2nd, 4th, etc.).
     /// Use `.` for `1.` or `)` for `1)`. Default: `)`.
-    pub even_level_marker: char,
+    pub even_level_marker: OrderedMarker,
 
     /// Padding style for ordered list numbers. Default: `Start`.
     pub ordered_list_pad: OrderedListPad,
@@ -157,8 +157,8 @@ impl Default for Options {
             leading_spaces: 1,
             trailing_spaces: 2,
             indent_width: 4,
-            odd_level_marker: '.',
-            even_level_marker: ')',
+            odd_level_marker: OrderedMarker::default(),
+            even_level_marker: OrderedMarker::Parenthesis,
             ordered_list_pad: OrderedListPad::Start,
             ordered_list_indent_width: 4,
             fence_char: '~',
