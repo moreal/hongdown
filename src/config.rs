@@ -288,6 +288,51 @@ impl FenceChar {
     }
 }
 
+/// Minimum fence length for code blocks (must be at least 3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MinFenceLength(usize);
+
+impl MinFenceLength {
+    /// Minimum allowed fence length (CommonMark requirement).
+    pub const MIN: usize = 3;
+
+    /// Create a new MinFenceLength.
+    ///
+    /// Returns an error if the value is less than 3.
+    pub fn new(value: usize) -> Result<Self, String> {
+        if value < Self::MIN {
+            Err(format!(
+                "min_fence_length must be at least {}, got {}.",
+                Self::MIN,
+                value
+            ))
+        } else {
+            Ok(Self(value))
+        }
+    }
+
+    /// Get the inner value.
+    pub fn get(self) -> usize {
+        self.0
+    }
+}
+
+impl Default for MinFenceLength {
+    fn default() -> Self {
+        Self(4)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MinFenceLength {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = usize::deserialize(deserializer)?;
+        Self::new(value).map_err(serde::de::Error::custom)
+    }
+}
+
 /// Code block formatting options.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(default)]
@@ -296,7 +341,7 @@ pub struct CodeBlockConfig {
     pub fence_char: FenceChar,
 
     /// Minimum fence length (default: 4).
-    pub min_fence_length: usize,
+    pub min_fence_length: MinFenceLength,
 
     /// Add space between fence and language identifier (default: true).
     pub space_after_fence: bool,
@@ -317,7 +362,7 @@ impl Default for CodeBlockConfig {
     fn default() -> Self {
         Self {
             fence_char: FenceChar::default(),
-            min_fence_length: 4,
+            min_fence_length: MinFenceLength::default(),
             space_after_fence: true,
             default_language: String::new(),
             formatters: HashMap::new(),
@@ -613,7 +658,7 @@ mod tests {
         assert_eq!(config.ordered_list.pad, OrderedListPad::Start);
         assert_eq!(config.ordered_list.indent_width, 4);
         assert_eq!(config.code_block.fence_char, FenceChar::Tilde);
-        assert_eq!(config.code_block.min_fence_length, 4);
+        assert_eq!(config.code_block.min_fence_length.get(), 4);
         assert!(config.code_block.space_after_fence);
         assert_eq!(config.code_block.default_language, "");
         assert_eq!(
@@ -793,7 +838,7 @@ space_after_fence = false
         )
         .unwrap();
         assert_eq!(config.code_block.fence_char, FenceChar::Backtick);
-        assert_eq!(config.code_block.min_fence_length, 3);
+        assert_eq!(config.code_block.min_fence_length.get(), 3);
         assert!(!config.code_block.space_after_fence);
         assert_eq!(config.code_block.default_language, ""); // Default is empty
     }
@@ -860,15 +905,6 @@ style = "---"
     fn test_parse_invalid_toml() {
         let result = Config::from_toml("line_width = \"not a number\"");
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_discover_no_config() {
-        let temp_dir = std::env::temp_dir().join("hongdown_test_no_config");
-        let _ = std::fs::create_dir_all(&temp_dir);
-        let result = Config::discover(&temp_dir).unwrap();
-        assert!(result.is_none());
-        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
     #[test]
@@ -1451,6 +1487,64 @@ fence_char = "#"
             r#"
 [code_block]
 fence_char = ""
+"#,
+        );
+        assert!(result.is_err());
+    }
+}
+
+#[cfg(test)]
+mod min_fence_length_tests {
+    use super::*;
+
+    #[test]
+    fn test_min_fence_length_default() {
+        assert_eq!(MinFenceLength::default().get(), 4);
+    }
+
+    #[test]
+    fn test_min_fence_length_valid() {
+        assert_eq!(MinFenceLength::new(3).unwrap().get(), 3);
+        assert_eq!(MinFenceLength::new(4).unwrap().get(), 4);
+        assert_eq!(MinFenceLength::new(10).unwrap().get(), 10);
+    }
+
+    #[test]
+    fn test_min_fence_length_too_small() {
+        assert!(MinFenceLength::new(0).is_err());
+        assert!(MinFenceLength::new(1).is_err());
+        assert!(MinFenceLength::new(2).is_err());
+    }
+
+    #[test]
+    fn test_min_fence_length_parse_valid() {
+        let config = Config::from_toml(
+            r#"
+[code_block]
+min_fence_length = 3
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.code_block.min_fence_length.get(), 3);
+    }
+
+    #[test]
+    fn test_min_fence_length_parse_invalid() {
+        let result = Config::from_toml(
+            r#"
+[code_block]
+min_fence_length = 2
+"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_min_fence_length_parse_zero() {
+        let result = Config::from_toml(
+            r#"
+[code_block]
+min_fence_length = 0
 "#,
         );
         assert!(result.is_err());

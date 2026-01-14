@@ -1981,7 +1981,7 @@ fn test_ordered_list_alternating_markers() {
     assert!(result.contains("2)  Nested second"), "got: {}", result);
 }
 
-use crate::FenceChar;
+use crate::{FenceChar, MinFenceLength};
 
 #[test]
 fn test_code_block_fence_char_backtick() {
@@ -2004,7 +2004,7 @@ fn test_code_block_fence_char_default() {
 #[test]
 fn test_code_block_min_fence_length_three() {
     let options = Options {
-        min_fence_length: 3,
+        min_fence_length: MinFenceLength::new(3).unwrap(),
         ..Options::default()
     };
     let result = parse_and_serialize_with_options("~~~~ rust\nfn main() {}\n~~~~", &options);
@@ -2015,7 +2015,7 @@ fn test_code_block_min_fence_length_three() {
 #[test]
 fn test_code_block_min_fence_length_six() {
     let options = Options {
-        min_fence_length: 6,
+        min_fence_length: MinFenceLength::new(6).unwrap(),
         ..Options::default()
     };
     let result = parse_and_serialize_with_options("~~~~ rust\nfn main() {}\n~~~~", &options);

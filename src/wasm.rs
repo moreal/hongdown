@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use crate::Options;
-use crate::config::{DashSetting, FenceChar, OrderedListPad, OrderedMarker, UnorderedMarker};
+use crate::config::{
+    DashSetting, FenceChar, MinFenceLength, OrderedListPad, OrderedMarker, UnorderedMarker,
+};
 
 /// JavaScript-friendly options struct.
 ///
@@ -184,7 +186,9 @@ impl JsOptions {
             };
         }
         if let Some(v) = self.min_fence_length {
-            opts.min_fence_length = v;
+            if let Ok(min_len) = MinFenceLength::new(v) {
+                opts.min_fence_length = min_len;
+            }
         }
         if let Some(v) = self.space_after_fence {
             opts.space_after_fence = v;
