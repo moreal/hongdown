@@ -2058,3 +2058,161 @@ em_dash = ""
         assert!(err.contains("dash pattern cannot be empty"));
     }
 }
+
+#[cfg(test)]
+mod leading_spaces_tests {
+    use super::*;
+
+    #[test]
+    fn test_leading_spaces_default() {
+        assert_eq!(LeadingSpaces::default().get(), 1);
+    }
+
+    #[test]
+    fn test_leading_spaces_valid() {
+        assert_eq!(LeadingSpaces::new(0).unwrap().get(), 0);
+        assert_eq!(LeadingSpaces::new(1).unwrap().get(), 1);
+        assert_eq!(LeadingSpaces::new(2).unwrap().get(), 2);
+        assert_eq!(LeadingSpaces::new(3).unwrap().get(), 3);
+    }
+
+    #[test]
+    fn test_leading_spaces_invalid() {
+        assert!(LeadingSpaces::new(4).is_err());
+        assert!(LeadingSpaces::new(5).is_err());
+        assert_eq!(
+            LeadingSpaces::new(4).unwrap_err(),
+            "leading_spaces must be at most 3, got 4."
+        );
+    }
+
+    #[test]
+    fn test_leading_spaces_parse_valid() {
+        let config = Config::from_toml(
+            r#"
+[unordered_list]
+leading_spaces = 2
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.unordered_list.leading_spaces.get(), 2);
+    }
+
+    #[test]
+    fn test_leading_spaces_parse_invalid() {
+        let result = Config::from_toml(
+            r#"
+[unordered_list]
+leading_spaces = 5
+"#,
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("leading_spaces must be at most 3"));
+    }
+}
+
+#[cfg(test)]
+mod trailing_spaces_tests {
+    use super::*;
+
+    #[test]
+    fn test_trailing_spaces_default() {
+        assert_eq!(TrailingSpaces::default().get(), 2);
+    }
+
+    #[test]
+    fn test_trailing_spaces_valid() {
+        assert_eq!(TrailingSpaces::new(0).unwrap().get(), 0);
+        assert_eq!(TrailingSpaces::new(1).unwrap().get(), 1);
+        assert_eq!(TrailingSpaces::new(2).unwrap().get(), 2);
+        assert_eq!(TrailingSpaces::new(3).unwrap().get(), 3);
+    }
+
+    #[test]
+    fn test_trailing_spaces_invalid() {
+        assert!(TrailingSpaces::new(4).is_err());
+        assert!(TrailingSpaces::new(5).is_err());
+        assert_eq!(
+            TrailingSpaces::new(4).unwrap_err(),
+            "trailing_spaces must be at most 3, got 4."
+        );
+    }
+
+    #[test]
+    fn test_trailing_spaces_parse_valid() {
+        let config = Config::from_toml(
+            r#"
+[unordered_list]
+trailing_spaces = 1
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.unordered_list.trailing_spaces.get(), 1);
+    }
+
+    #[test]
+    fn test_trailing_spaces_parse_invalid() {
+        let result = Config::from_toml(
+            r#"
+[unordered_list]
+trailing_spaces = 4
+"#,
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("trailing_spaces must be at most 3"));
+    }
+}
+
+#[cfg(test)]
+mod indent_width_tests {
+    use super::*;
+
+    #[test]
+    fn test_indent_width_default() {
+        assert_eq!(IndentWidth::default().get(), 4);
+    }
+
+    #[test]
+    fn test_indent_width_valid() {
+        assert_eq!(IndentWidth::new(1).unwrap().get(), 1);
+        assert_eq!(IndentWidth::new(2).unwrap().get(), 2);
+        assert_eq!(IndentWidth::new(4).unwrap().get(), 4);
+        assert_eq!(IndentWidth::new(8).unwrap().get(), 8);
+    }
+
+    #[test]
+    fn test_indent_width_invalid() {
+        assert!(IndentWidth::new(0).is_err());
+        assert_eq!(
+            IndentWidth::new(0).unwrap_err(),
+            "indent_width must be at least 1, got 0."
+        );
+    }
+
+    #[test]
+    fn test_indent_width_parse_valid() {
+        let config = Config::from_toml(
+            r#"
+[unordered_list]
+indent_width = 2
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.unordered_list.indent_width.get(), 2);
+    }
+
+    #[test]
+    fn test_indent_width_parse_invalid() {
+        let result = Config::from_toml(
+            r#"
+[unordered_list]
+indent_width = 0
+"#,
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("indent_width must be at least 1"));
+    }
+}
