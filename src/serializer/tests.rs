@@ -1,5 +1,5 @@
 use super::*;
-use crate::LineWidth;
+use crate::{LineWidth, ThematicBreakStyle};
 use comrak::{Arena, Options as ComrakOptions, parse_document};
 
 fn comrak_options() -> ComrakOptions<'static> {
@@ -1502,7 +1502,7 @@ fn test_thematic_break_default_leading_spaces() {
 fn test_thematic_break_custom_style() {
     let input = "Before\n\n---\n\nAfter";
     let mut options = Options::default();
-    options.thematic_break_style = "---".to_string();
+    options.thematic_break_style = ThematicBreakStyle::new("---".to_string()).unwrap();
     options.thematic_break_leading_spaces = LeadingSpaces::new(0).unwrap();
     let result = parse_and_serialize_with_options(input, &options);
     assert!(
@@ -1516,7 +1516,7 @@ fn test_thematic_break_custom_style() {
 fn test_thematic_break_leading_spaces() {
     let input = "Before\n\n---\n\nAfter";
     let mut options = Options::default();
-    options.thematic_break_style = "*  *  *".to_string();
+    options.thematic_break_style = ThematicBreakStyle::new("*  *  *".to_string()).unwrap();
     options.thematic_break_leading_spaces = LeadingSpaces::new(3).unwrap();
     let result = parse_and_serialize_with_options(input, &options);
     // 3 leading spaces should be applied

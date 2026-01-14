@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 use crate::Options;
 use crate::config::{
     DashSetting, FenceChar, IndentWidth, LeadingSpaces, LineWidth, MinFenceLength, OrderedListPad,
-    OrderedMarker, TrailingSpaces, UnorderedMarker,
+    OrderedMarker, ThematicBreakStyle, TrailingSpaces, UnorderedMarker,
 };
 
 /// JavaScript-friendly options struct.
@@ -208,7 +208,9 @@ impl JsOptions {
             opts.default_language = v.clone();
         }
         if let Some(ref v) = self.thematic_break_style {
-            opts.thematic_break_style = v.clone();
+            if let Ok(style) = ThematicBreakStyle::new(v.clone()) {
+                opts.thematic_break_style = style;
+            }
         }
         if let Some(v) = self.thematic_break_leading_spaces {
             if let Ok(leading) = LeadingSpaces::new(v) {

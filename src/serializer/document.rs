@@ -859,7 +859,7 @@ impl<'a> Serializer<'a> {
     }
 
     pub(super) fn serialize_thematic_break(&mut self) {
-        let style = &self.options.thematic_break_style;
+        let style = self.options.thematic_break_style.as_str();
         let leading_spaces = self.options.thematic_break_leading_spaces.get();
 
         // Determine the prefix based on blockquote context

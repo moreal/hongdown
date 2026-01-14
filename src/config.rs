@@ -531,12 +531,118 @@ impl Default for CodeBlockConfig {
     }
 }
 
+/// Thematic break style string (must be a valid CommonMark thematic break pattern).
+///
+/// A valid thematic break consists of:
+/// - At least 3 of the same character: `*`, `-`, or `_`
+/// - Optional spaces between the characters
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThematicBreakStyle(String);
+
+impl ThematicBreakStyle {
+    /// Minimum number of marker characters required.
+    pub const MIN_MARKERS: usize = 3;
+
+    /// Create a new ThematicBreakStyle.
+    ///
+    /// Returns an error if the style is not a valid CommonMark thematic break pattern.
+    pub fn new(style: String) -> Result<Self, String> {
+        // Validate the thematic break pattern according to CommonMark spec:
+        // - Must contain at least 3 of the same character (*, -, or _)
+        // - Can have spaces between characters
+        // - No other characters allowed (except spaces)
+
+        let trimmed = style.trim();
+        if trimmed.is_empty() {
+            return Err("thematic_break style cannot be empty.".to_string());
+        }
+
+        // Count each marker type
+        let mut asterisk_count = 0;
+        let mut hyphen_count = 0;
+        let mut underscore_count = 0;
+        let mut has_other = false;
+
+        for ch in trimmed.chars() {
+            match ch {
+                '*' => asterisk_count += 1,
+                '-' => hyphen_count += 1,
+                '_' => underscore_count += 1,
+                ' ' | '\t' => {} // Whitespace is allowed
+                _ => {
+                    has_other = true;
+                    break;
+                }
+            }
+        }
+
+        if has_other {
+            return Err(format!(
+                "thematic_break style must only contain *, -, or _ (with optional spaces), got {:?}.",
+                style
+            ));
+        }
+
+        // Must have at least 3 of exactly one marker type
+        let marker_counts = [
+            (asterisk_count, '*'),
+            (hyphen_count, '-'),
+            (underscore_count, '_'),
+        ];
+
+        let valid_markers: Vec<_> = marker_counts
+            .iter()
+            .filter(|(count, _)| *count >= Self::MIN_MARKERS)
+            .collect();
+
+        if valid_markers.is_empty() {
+            return Err(format!(
+                "thematic_break style must contain at least {} of the same marker (*, -, or _), got {:?}.",
+                Self::MIN_MARKERS,
+                style
+            ));
+        }
+
+        if valid_markers.len() > 1 {
+            return Err(format!(
+                "thematic_break style must use only one type of marker (*, -, or _), got {:?}.",
+                style
+            ));
+        }
+
+        Ok(Self(style))
+    }
+
+    /// Get the inner value.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Default for ThematicBreakStyle {
+    fn default() -> Self {
+        Self(
+            "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -".to_string(),
+        )
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ThematicBreakStyle {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::new(value).map_err(serde::de::Error::custom)
+    }
+}
+
 /// Thematic break (horizontal rule) formatting options.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct ThematicBreakConfig {
     /// The style string for thematic breaks (default: `*  *  *`).
-    pub style: String,
+    pub style: ThematicBreakStyle,
 
     /// Number of leading spaces before the thematic break (0-3, default: 3).
     /// CommonMark allows 0-3 leading spaces for thematic breaks.
@@ -546,8 +652,7 @@ pub struct ThematicBreakConfig {
 impl Default for ThematicBreakConfig {
     fn default() -> Self {
         Self {
-            style: "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
-                .to_string(),
+            style: ThematicBreakStyle::default(),
             leading_spaces: LeadingSpaces::new(3).unwrap(),
         }
     }
@@ -823,7 +928,7 @@ mod tests {
         assert!(config.code_block.space_after_fence);
         assert_eq!(config.code_block.default_language, "");
         assert_eq!(
-            config.thematic_break.style,
+            config.thematic_break.style.as_str(),
             "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
         );
         assert_eq!(config.thematic_break.leading_spaces.get(), 3);
@@ -1059,7 +1164,7 @@ style = "---"
 "#,
         )
         .unwrap();
-        assert_eq!(config.thematic_break.style, "---");
+        assert_eq!(config.thematic_break.style.as_str(), "---");
     }
 
     #[test]
@@ -1742,5 +1847,103 @@ mod line_width_tests {
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("line_width must be at least 8"));
+    }
+}
+
+#[cfg(test)]
+mod thematic_break_style_tests {
+    use super::*;
+
+    #[test]
+    fn test_thematic_break_style_default() {
+        let style = ThematicBreakStyle::default();
+        assert_eq!(
+            style.as_str(),
+            "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        );
+    }
+
+    #[test]
+    fn test_thematic_break_style_valid_hyphens() {
+        assert!(ThematicBreakStyle::new("---".to_string()).is_ok());
+        assert!(ThematicBreakStyle::new("- - -".to_string()).is_ok());
+        assert!(ThematicBreakStyle::new("-----".to_string()).is_ok());
+        assert_eq!(
+            ThematicBreakStyle::new("---".to_string()).unwrap().as_str(),
+            "---"
+        );
+    }
+
+    #[test]
+    fn test_thematic_break_style_valid_asterisks() {
+        assert!(ThematicBreakStyle::new("***".to_string()).is_ok());
+        assert!(ThematicBreakStyle::new("* * *".to_string()).is_ok());
+        assert!(ThematicBreakStyle::new("*****".to_string()).is_ok());
+    }
+
+    #[test]
+    fn test_thematic_break_style_valid_underscores() {
+        assert!(ThematicBreakStyle::new("___".to_string()).is_ok());
+        assert!(ThematicBreakStyle::new("_ _ _".to_string()).is_ok());
+        assert!(ThematicBreakStyle::new("_____".to_string()).is_ok());
+    }
+
+    #[test]
+    fn test_thematic_break_style_empty() {
+        let result = ThematicBreakStyle::new("".to_string());
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "thematic_break style cannot be empty.");
+    }
+
+    #[test]
+    fn test_thematic_break_style_too_few_markers() {
+        assert!(ThematicBreakStyle::new("--".to_string()).is_err());
+        assert!(ThematicBreakStyle::new("**".to_string()).is_err());
+        assert!(ThematicBreakStyle::new("__".to_string()).is_err());
+        let result = ThematicBreakStyle::new("--".to_string());
+        assert!(
+            result
+                .unwrap_err()
+                .contains("must contain at least 3 of the same marker")
+        );
+    }
+
+    #[test]
+    fn test_thematic_break_style_mixed_markers() {
+        let result = ThematicBreakStyle::new("---***".to_string());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("only one type of marker"));
+    }
+
+    #[test]
+    fn test_thematic_break_style_invalid_characters() {
+        let result = ThematicBreakStyle::new("---abc".to_string());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("must only contain *, -, or _"));
+    }
+
+    #[test]
+    fn test_thematic_break_style_parse_valid() {
+        let config = Config::from_toml(
+            r#"
+[thematic_break]
+style = "***"
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.thematic_break.style.as_str(), "***");
+    }
+
+    #[test]
+    fn test_thematic_break_style_parse_invalid() {
+        let result = Config::from_toml(
+            r#"
+[thematic_break]
+style = "--"
+"#,
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("must contain at least 3"));
     }
 }

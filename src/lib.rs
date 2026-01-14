@@ -21,7 +21,7 @@ mod wasm;
 
 pub use config::{
     DashSetting, FenceChar, IndentWidth, LeadingSpaces, LineWidth, MinFenceLength, OrderedListPad,
-    OrderedMarker, TrailingSpaces, UnorderedMarker,
+    OrderedMarker, ThematicBreakStyle, TrailingSpaces, UnorderedMarker,
 };
 pub use serializer::Warning;
 pub use serializer::punctuation::{PunctuationError, validate_dash_settings};
@@ -101,7 +101,7 @@ pub struct Options {
     pub default_language: String,
 
     /// The style string for thematic breaks. Default: 37 spaced dashes.
-    pub thematic_break_style: String,
+    pub thematic_break_style: ThematicBreakStyle,
 
     /// Number of leading spaces before thematic breaks (0-3). Default: 3.
     /// CommonMark allows 0-3 leading spaces for thematic breaks.
@@ -168,9 +168,7 @@ impl Default for Options {
             min_fence_length: MinFenceLength::default(),
             space_after_fence: true,
             default_language: String::new(),
-            thematic_break_style:
-                "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
-                    .to_string(),
+            thematic_break_style: ThematicBreakStyle::default(),
             thematic_break_leading_spaces: LeadingSpaces::new(3).unwrap(),
             curly_double_quotes: true,
             curly_single_quotes: true,
